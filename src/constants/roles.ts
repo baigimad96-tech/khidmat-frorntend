@@ -1,0 +1,29 @@
+export const ROLES = [
+  { label: 'Donor', value: 'DONOR' },
+  { label: 'Donee', value: 'DONEE' },
+  { label: 'Surveyor', value: 'SURVEYOR' },
+  { label: 'Donor & Surveyor', value: 'BOTH' },
+  { label: 'Admin', value: 'ADMIN' }
+];
+
+export const BANK_ACCOUNT_TYPES = ['SAVINGS', 'CURRENT', 'SALARY', 'OVERDRAFT'];
+
+export const HOUSING_STATUS = ['OWNED', 'RENTED', 'FAMILY_OWNED', 'HOMELESS', 'OTHER'];
+
+export const INCOME_RANGE = ['BELOW_5K','LOW', 'RANGE_5K_10K', 'RANGE_10K_20K', 'RANGE_20K_30K', 'RANGE_30K_50K', 'ABOVE_50K'];
+
+export const EDUCATION_LEVELS = ['ILLITERATE', 'PRIMARY', 'MIDDLE', 'SECONDARY', 'HIGHER_SECONDARY', 'GRADUATE', 'POST_GRADUATE', 'PROFESSIONAL'];
+
+export const RELATIONSHIP_TYPES = ['FATHER', 'MOTHER', 'SON', 'DAUGHTER', 'SPOUSE', 'BROTHER', 'SISTER', 'GRANDFATHER', 'GRANDMOTHER', 'UNCLE', 'AUNT', 'OTHER'];
+
+export const HEALTH_STATUS = ['EXCELLENT', 'GOOD', 'FAIR', 'POOR', 'CRITICAL'];
+
+export const NEED_CATEGORIES = ['FOOD', 'MEDICAL', 'EDUCATION', 'HOUSING', 'EMERGENCY', 'BUSINESS', 'UTILITIES', 'OTHER'];
+
+export const URGENCY_LEVELS = ['IMMEDIATE', 'MODERATE', 'LONG_TERM'];
+
+export const GENDER_TYPES = ['MALE', 'FEMALE'];                
+
+export const ADDRESS_TYPES = ['CURRENT', 'PERMANENT', 'OFFICE', 'PICKUP', 'DONEE_LOCATION', 'REFERENCE_ADDRESS'];
+
+export const DOCUMENT_TYPES = ['UTILITY_BILL', 'INCOME_PROOF', 'FAMILY_PHOTO', 'MEDICAL_REPORT', 'EDUCATION_DOCUMENT', 'BANK_STATEMENT', 'RATION_CARD', 'AADHAAR_CARD', 'PAN_CARD', 'RESIDENCE_PROOF', 'OTHER'];
