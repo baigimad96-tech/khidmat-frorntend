@@ -202,7 +202,7 @@ export default function AllApprovedDonees({ route, navigation }: any) {
          <TouchableOpacity onPress={() => selectedDonee ? setSelectedDonee(null) : navigation.goBack()}>
            <Text style={styles.backBtn}>←</Text>
          </TouchableOpacity>
-         <Text style={styles.logoText}>40 NSEW</Text>
+         <Text style={styles.logoText}>40 NSES</Text>
       </View>
       {selectedDonee ? renderDetailView() : renderListView()}
     </SafeAreaView>
