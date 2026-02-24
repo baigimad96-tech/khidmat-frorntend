@@ -11,7 +11,7 @@ import TabNavigator from './TabNavigator';
 import AdminAssignmentScreen from '../screens/AdminAssignmentScreen';
 import SurveyorTasksScreen from '../screens/SurveyorTasksScreen';
 import FillDoneeProfile from '../screens/FillDoneeProfile';
-
+import AllApprovedDonees from '../screens/AllApprovedDonees';
 
 
 
@@ -33,6 +33,7 @@ export default function RootNavigator() {
       <Stack.Screen name="AdminAssignment" component={AdminAssignmentScreen} />
       <Stack.Screen name="SurveyorTasks" component={SurveyorTasksScreen} />
       <Stack.Screen name="FillDoneeProfile" component={FillDoneeProfile} />
+      <Stack.Screen name="AllApprovedDonees" component={AllApprovedDonees} />
     </Stack.Navigator>
   );
 }

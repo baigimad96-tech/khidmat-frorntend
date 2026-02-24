@@ -217,6 +217,16 @@ export default function ProfileScreen({ route, navigation }: any) {
           </View>
       </View>
 
+      {formData.role === 'DONOR' && (
+  <TouchableOpacity 
+    style={styles.donorLinkBtn} 
+    onPress={() => navigation.navigate('AllApprovedDonees', { user })}
+  >
+    <Text style={styles.donorLinkText}>🤝 View All Approved Donees</Text>
+    <Text style={styles.donorLinkSub}>Browse families who need your support</Text>
+  </TouchableOpacity>
+)}
+
       {/* Photo Options Modal */}
       <Modal visible={isOptionsModalVisible} transparent animationType="slide">
         <TouchableOpacity style={styles.bottomOverlay} activeOpacity={1} onPress={() => setOptionsModalVisible(false)}>
@@ -313,5 +323,21 @@ const styles = StyleSheet.create({
   sheetTitle: { fontSize: 18, fontWeight: 'bold', color: '#16476A', textAlign: 'center', marginBottom: 25 },
   previewContainer: { alignItems: 'center', marginBottom: 15 },
   previewImage: { width: 90, height: 90, borderRadius: 45, borderWidth: 3, borderColor: '#16476A' },
-  previewLabel: { fontSize: 10, fontWeight: 'bold', color: '#16476A', marginTop: 5 }
+  previewLabel: { fontSize: 10, fontWeight: 'bold', color: '#16476A', marginTop: 5 },
+  donorLinkBtn: {
+  marginTop: 20,
+  backgroundColor: '#FFF',
+  padding: 20,
+  borderRadius: 20,
+  borderWidth: 1,
+  borderColor: '#E2E8F0',
+  width: '100%',
+  alignItems: 'center',
+  elevation: 3,
+  shadowColor: '#16476A',
+  shadowOpacity: 0.1,
+  shadowRadius: 5,
+},
+donorLinkText: { color: '#16476A', fontWeight: 'bold', fontSize: 16 },
+donorLinkSub: { color: '#64748B', fontSize: 12, marginTop: 4 },
 });

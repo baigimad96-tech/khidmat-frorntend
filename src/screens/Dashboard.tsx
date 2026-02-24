@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   View, Text, StyleSheet, SafeAreaView, ScrollView, 
-  ActivityIndicator, Dimensions, TouchableOpacity, RefreshControl 
+  ActivityIndicator, Dimensions, RefreshControl 
 } from 'react-native';
 import axios from 'axios';
 import { PieChart, BarChart } from 'react-native-chart-kit';
@@ -11,7 +11,9 @@ const BASE_URL = 'https://perchable-freewheeling-faye.ngrok-free.dev';
 
 export default function AdminDashboard({ route }: any) {
   const { user } = route.params;
-  const [loading, setLoading] = useState(true);
+  const isAdmin = user?.role === 'ADMIN'; // Role Check
+
+  const [loading, setLoading] = useState(isAdmin); // Admin ke liye loading true, baaki ke liye false
   const [refreshing, setRefreshing] = useState(false);
   const [stats, setStats] = useState({
     total: 0, donors: 0, donees: 0, surveyors: 0,
@@ -19,9 +21,14 @@ export default function AdminDashboard({ route }: any) {
   });
 
   const fetchData = async () => {
+    if (!isAdmin) return; // Agar admin nahi hai toh API call mat karo
+    
     try {
       const res = await axios.get(`${BASE_URL}/api/admin/users/all`, {
-        headers: { Authorization: `Bearer ${user.accessToken}`, 'ngrok-skip-browser-warning': 'true' }
+        headers: { 
+          Authorization: `Bearer ${user.accessToken}`, 
+          'ngrok-skip-browser-warning': 'true' 
+        }
       });
       const allUsers = res.data?.users || [];
       
@@ -34,20 +41,50 @@ export default function AdminDashboard({ route }: any) {
         female: allUsers.filter((u: any) => u.gender?.toUpperCase() === 'FEMALE').length,
         others: allUsers.filter((u: any) => !['MALE', 'FEMALE'].includes(u.gender?.toUpperCase())).length,
       });
-    } catch (e) { console.log(e); } finally { setLoading(false); setRefreshing(false); }
+    } catch (e) { 
+      console.log(e); 
+    } finally { 
+      setLoading(false); 
+      setRefreshing(false); 
+    }
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { 
+    fetchData(); 
+  }, []);
 
-  const onRefresh = () => { setRefreshing(true); fetchData(); };
+  const onRefresh = () => { 
+    setRefreshing(true); 
+    fetchData(); 
+  };
+
+  // --- UI FOR NON-ADMIN USERS ---
+  if (!isAdmin) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.welcomeCenter}>
+          <View style={styles.welcomeCard}>
+            <Text style={styles.welcomeEmoji}>✨</Text>
+            <Text style={styles.welcomeText}>Welcome back,</Text>
+            <Text style={styles.userName}>{user?.name || 'User'}</Text>
+            <View style={styles.roleBadge}>
+              <Text style={styles.roleText}>{user?.role}</Text>
+            </View>
+            <Text style={styles.subMessage}>You have successfully logged into the portal.</Text>
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // --- UI FOR ADMIN (DASHBOARD) ---
+  if (loading) return <View style={styles.center}><ActivityIndicator size="large" color="#16476A" /></View>;
 
   const roleData = [
     { name: 'Donors', population: stats.donors, color: '#4F46E5', legendFontColor: '#475569', legendFontSize: 12 },
     { name: 'Donees', population: stats.donees, color: '#10B981', legendFontColor: '#475569', legendFontSize: 12 },
     { name: 'Surveyors', population: stats.surveyors, color: '#F59E0B', legendFontColor: '#475569', legendFontSize: 12 },
   ];
-
-  if (loading) return <View style={styles.center}><ActivityIndicator size="large" color="#16476A" /></View>;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -107,5 +144,15 @@ const styles = StyleSheet.create({
   cardLabel: { fontSize: 10, fontWeight: 'bold', color: '#94A3B8' },
   cardValue: { fontSize: 22, fontWeight: 'bold', color: '#1E293B' },
   chartContainer: { backgroundColor: '#FFF', padding: 15, borderRadius: 15, marginTop: 15, elevation: 1 },
-  chartTitle: { fontSize: 15, fontWeight: 'bold', color: '#1E293B' }
+  chartTitle: { fontSize: 15, fontWeight: 'bold', color: '#1E293B' },
+  
+  // New Styles for non-admin welcome
+  welcomeCenter: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
+  welcomeCard: { backgroundColor: '#FFF', width: '100%', padding: 40, borderRadius: 30, alignItems: 'center', elevation: 10, shadowColor: '#16476A', shadowOpacity: 0.1, shadowRadius: 10 },
+  welcomeEmoji: { fontSize: 50, marginBottom: 20 },
+  welcomeText: { fontSize: 18, color: '#64748B', fontWeight: '600' },
+  userName: { fontSize: 32, fontWeight: '900', color: '#16476A', marginVertical: 5, textAlign: 'center' },
+  roleBadge: { backgroundColor: '#F0F5F5', paddingHorizontal: 15, paddingVertical: 5, borderRadius: 20, marginTop: 10 },
+  roleText: { color: '#16476A', fontWeight: '800', fontSize: 12, letterSpacing: 1 },
+  subMessage: { marginTop: 20, color: '#94A3B8', textAlign: 'center', fontSize: 14 }
 });

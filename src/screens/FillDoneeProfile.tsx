@@ -1,63 +1,57 @@
-import React, { useState, useCallback, memo } from 'react';
-import { View, Text, ScrollView, TextInput, TouchableOpacity, StyleSheet, Alert, Switch, ActivityIndicator, SafeAreaView } from 'react-native';
-import { Picker } from '@react-native-picker/picker'; // Dropdown ke liye
+import React, { useState, useCallback, memo, useEffect } from 'react';
+import { View, Text, ScrollView, TextInput, TouchableOpacity, StyleSheet, Alert, Switch, ActivityIndicator, SafeAreaView, Platform } from 'react-native';
+import { Picker } from '@react-native-picker/picker'; 
 import axios from 'axios';
+import { launchImageLibrary } from 'react-native-image-picker';
 
 // Enums Import
 import { 
-  BANK_ACCOUNT_TYPES, 
-  HOUSING_STATUS, 
-  INCOME_RANGE, 
-  EDUCATION_LEVELS, 
-  RELATIONSHIP_TYPES, 
-  HEALTH_STATUS, 
-  NEED_CATEGORIES, 
-  URGENCY_LEVELS, 
-  GENDER_TYPES 
+  BANK_ACCOUNT_TYPES, HOUSING_STATUS, INCOME_RANGE, 
+  EDUCATION_LEVELS, RELATIONSHIP_TYPES, HEALTH_STATUS, 
+  NEED_CATEGORIES, URGENCY_LEVELS, GENDER_TYPES 
 } from '../constants/roles';
 
 // 1. STABLE INPUT COMPONENT
-const StableInput = memo(({ label, val, onChange, kb = 'default', isNum = false }: any) => {
-  return (
-    <View style={styles.fWrap}>
-      <Text style={styles.fLabel}>{label}</Text>
-      <TextInput 
-        style={styles.fInput} 
-        value={val === null || val === undefined ? "" : val.toString()} 
-        keyboardType={kb}
-        autoCorrect={false}
-        spellCheck={false}
-        onChangeText={(t) => onChange(isNum ? (parseFloat(t) || 0) : t)} 
-      />
-    </View>
-  );
-});
+const StableInput = memo(({ label, val, onChange, kb = 'default', isNum = false }: any) => (
+  <View style={styles.fWrap}>
+    <Text style={styles.fLabel}>{label}</Text>
+    <TextInput 
+      style={styles.fInput} 
+      value={val === null || val === undefined ? "" : val.toString()} 
+      keyboardType={kb}
+      autoCorrect={false}
+      spellCheck={false}
+      onChangeText={(t) => onChange(isNum ? (parseFloat(t) || 0) : t)} 
+    />
+  </View>
+));
 
-// 2. STABLE SELECT COMPONENT (Dropdown)
-const StableSelect = memo(({ label, val, options, onChange }: any) => {
-  return (
-    <View style={styles.fWrap}>
-      <Text style={styles.fLabel}>{label}</Text>
-      <View style={styles.pickerCont}>
-        <Picker
-          selectedValue={val}
-          onValueChange={(v) => onChange(v)}
-          dropdownIconColor="#16476A"
-          mode="dropdown"
-        >
-          {options.map((opt: string) => (
-            <Picker.Item key={opt} label={opt.replace(/_/g, ' ')} value={opt} style={{fontSize: 14}} />
-          ))}
-        </Picker>
-      </View>
+// 2. STABLE SELECT COMPONENT
+const StableSelect = memo(({ label, val, options, onChange }: any) => (
+  <View style={styles.fWrap}>
+    <Text style={styles.fLabel}>{label}</Text>
+    <View style={styles.pickerCont}>
+      <Picker
+        selectedValue={val}
+        onValueChange={(v) => onChange(v)}
+        dropdownIconColor="#16476A"
+        mode="dropdown"
+      >
+        {options.map((opt: string) => (
+          <Picker.Item key={opt} label={opt.replace(/_/g, ' ')} value={opt} style={{fontSize: 14}} />
+        ))}
+      </Picker>
     </View>
-  );
-});
+  </View>
+));
 
 export default function FillDoneeProfile({ route, navigation }: any) {
   const { user, assignmentId } = route.params;
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
+  const [uploadedDocs, setUploadedDocs] = useState<string[]>([]);
+  const [backendDoneeId, setBackendDoneeId] = useState<number | null>(null);
 
   const [form, setForm] = useState<any>({
     assignmentId: assignmentId || 0,
@@ -79,6 +73,26 @@ export default function FillDoneeProfile({ route, navigation }: any) {
     }
   });
 
+  // FETCH DONEE ID FROM ALL-DONEES ENDPOINT
+  useEffect(() => {
+    const fetchDoneeData = async () => {
+      try {
+        const res = await axios.get('https://perchable-freewheeling-faye.ngrok-free.dev/api/admin/users/all-donee', {
+          headers: { Authorization: `Bearer ${user.accessToken}` }
+        });
+        // Find the donee that matches our assignmentId or specific criteria
+        const found = res.data.find((d: any) => d.assignmentId === assignmentId || d.id === assignmentId);
+        if (found) {
+            setBackendDoneeId(found.id);
+            console.log("Matched Backend Donee ID:", found.id);
+        }
+      } catch (e) {
+        console.log("Error fetching all donees:", e);
+      }
+    };
+    fetchDoneeData();
+  }, [assignmentId]);
+
   const updateSection = useCallback((sec: string, f: string, v: any) => {
     setForm((p: any) => ({ ...p, [sec]: { ...p[sec], [f]: v } }));
   }, []);
@@ -93,26 +107,85 @@ export default function FillDoneeProfile({ route, navigation }: any) {
 
   const addArr = (sec: string, obj: any) => setForm((p: any) => ({ ...p, [sec]: [...p[sec], obj] }));
 
+  // IMAGE PICKER & UPLOAD LOGIC (FIXED FOR BACKEND DTO)
+ const pickAndUpload = async (docType: string) => {
+  if (!backendDoneeId && !assignmentId) {
+    Alert.alert("Error", "Donee ID not found. Please wait for data to load.");
+    return;
+  }
+
+  const result = await launchImageLibrary({ mediaType: 'photo', quality: 0.5 });
+  
+  // 1. Assets aur pehli file check karein
+  if (result.didCancel || !result.assets || result.assets.length === 0) return;
+
+  const file = result.assets[0];
+
+  // 2. URI check karein (Isse TypeScript error 'possibly undefined' khatam ho jayega)
+  if (!file.uri) {
+    Alert.alert("Error", "Could not get image path");
+    return;
+  }
+
+  const formData = new FormData();
+  
+  // Match 'private MultipartFile file'
+  formData.append('file', {
+    // Ab TypeScript ko pata hai ki file.uri confirm hai
+    uri: Platform.OS === 'android' ? file.uri : file.uri.replace('file://', ''),
+    name: file.fileName || `${docType}.jpg`,
+    type: file.type || 'image/jpeg',
+  } as any);
+
+  // Match 'private Long doneeId'
+  formData.append('doneeId', (backendDoneeId || assignmentId).toString());
+  
+  // Match 'private DocumentType documentType'
+  formData.append('documentType', docType);
+
+  // Optional fields for safety
+  formData.append('documentNumber', "");
+  formData.append('issuingAuthority', "");
+
+  setUploading(true);
+  try {
+    const response = await axios.post('https://perchable-freewheeling-faye.ngrok-free.dev/api/v1/donee/documents/upload', formData, {
+      headers: { 
+          'Content-Type': 'multipart/form-data', 
+          Authorization: `Bearer ${user.accessToken}` 
+      }
+    });
+    
+    if(response.status === 200 || response.status === 201) {
+      setUploadedDocs(prev => [...prev, docType]);
+      Alert.alert("Success", `${docType.replace(/_/g, ' ')} Uploaded!`);
+    }
+  } catch (e: any) {
+    console.log("Upload Error:", e.response?.data || e.message);
+    Alert.alert("Upload Error", e.response?.data?.message || "Check server logs (500)");
+  } finally {
+    setUploading(false);
+  }
+};
   const submitFinal = async () => {
     setLoading(true);
     try {
       await axios.post('https://perchable-freewheeling-faye.ngrok-free.dev/api/v1/donee/profile', form, {
         headers: { Authorization: `Bearer ${user.accessToken}` }
       });
-      Alert.alert("Success", "Profile Submitted");
+      Alert.alert("Success", "Profile Submitted Successfully");
       navigation.goBack();
     } catch (e: any) {
       Alert.alert("Error", "Check Fields and Retry");
     } finally { setLoading(false); }
   };
 
-  // Modern Step Indicator Component
   const renderStepIndicator = () => (
     <View style={styles.stepContainer}>
       <View style={styles.progressBarBackground}>
-        <View style={[styles.progressBarFill, { width: `${((currentStep - 1) / 5) * 100}%` }]} />
+        <View style={[styles.progressBarFill, { width: `${((currentStep - 1) / 6) * 100}%` }]} />
       </View>
-      {[1, 2, 3, 4, 5, 6].map((step) => (
+      {[1, 2, 3, 4, 5, 6, 7].map((step) => (
         <View key={step} style={styles.stepCircleWrapper}>
           <View style={[styles.stepCircle, currentStep >= step ? styles.activeCircle : styles.inactiveCircle]}>
             <Text style={[styles.stepText, currentStep >= step ? styles.activeText : styles.inactiveText]}>{step}</Text>
@@ -188,7 +261,7 @@ export default function FillDoneeProfile({ route, navigation }: any) {
                 <StableInput label="Name" val={m.name} onChange={(v:any)=>updateArr('familyMembers',i,'name',v)} />
                 <StableSelect label="Relationship" val={m.relationship} options={RELATIONSHIP_TYPES} onChange={(v:any)=>updateArr('familyMembers',i,'relationship',v)} />
                 <StableSelect label="Gender" val={m.gender} options={GENDER_TYPES} onChange={(v:any)=>updateArr('familyMembers',i,'gender',v)} />
-                <StableInput label="DOB (YYYY-MM-DD)" val={m.dateOfBirth} onChange={(v:any)=>updateArr('familyMembers',i,'dateOfBirth',v)} />
+                <StableInput label="DOB" val={m.dateOfBirth} onChange={(v:any)=>updateArr('familyMembers',i,'dateOfBirth',v)} />
                 <StableInput label="Age" val={m.age} kb="numeric" isNum onChange={(v:any)=>updateArr('familyMembers',i,'age',v)} />
                 <View style={styles.row}><Text style={styles.label}>Earning?</Text><Switch value={m.isEarningMember} onValueChange={(v)=>updateArr('familyMembers',i,'isEarningMember',v)} /></View>
                 <StableInput label="Occupation" val={m.occupation} onChange={(v:any)=>updateArr('familyMembers',i,'occupation',v)} />
@@ -198,7 +271,7 @@ export default function FillDoneeProfile({ route, navigation }: any) {
                 <StableSelect label="Education" val={m.educationLevel} options={EDUCATION_LEVELS} onChange={(v:any)=>updateArr('familyMembers',i,'educationLevel',v)} />
                 <View style={styles.row}><Text style={styles.label}>In School?</Text><Switch value={m.isInSchool} onValueChange={(v)=>updateArr('familyMembers',i,'isInSchool',v)} /></View>
                 <StableInput label="School Name" val={m.schoolName} onChange={(v:any)=>updateArr('familyMembers',i,'schoolName',v)} />
-                <StableSelect label="Health" val={m.healthStatus} options={HEALTH_STATUS} onChange={(v:any)=>updateArr('familyMembers',i,'healthStatus',v)} />
+                <StableSelect label="Health Status" val={m.healthStatus} options={HEALTH_STATUS} onChange={(v:any)=>updateArr('familyMembers',i,'healthStatus',v)} />
               </View>
             ))}
             <TouchableOpacity style={styles.addB} onPress={()=>addArr('familyMembers',{name:"", relationship: "OTHER", gender: "MALE"})}><Text style={styles.addText}>+ Add Member</Text></TouchableOpacity>
@@ -237,7 +310,7 @@ export default function FillDoneeProfile({ route, navigation }: any) {
                 <StableInput label="Type (IMAM/LOCAL)" val={r.referenceType} onChange={(v:any)=>updateArr('references',i,'referenceType',v)} />
                 <StableInput label="Importance" val={r.importanceLevel} onChange={(v:any)=>updateArr('references',i,'importanceLevel',v)} />
                 <StableInput label="City" val={r.city} onChange={(v:any)=>updateArr('references',i,'city',v)} />
-                <StableInput label="State" val={r.state} onChange={(v:any)=>updateArr('references',i,'state',v)} />
+                 <StableInput label="State" val={r.state} onChange={(v:any)=>updateArr('references',i,'state',v)} />
                 <StableInput label="Country" val={r.country} onChange={(v:any)=>updateArr('references',i,'country',v)} />
               </View>
             ))}
@@ -249,28 +322,59 @@ export default function FillDoneeProfile({ route, navigation }: any) {
             <Text style={styles.secH}>6. Surveyor Report</Text>
             <StableInput label="Latitude" val={form.surveyorReport.visitGpsLatitude} kb="numeric" isNum onChange={(v:any)=>updateSection('surveyorReport','visitGpsLatitude',v)} />
             <StableInput label="Longitude" val={form.surveyorReport.visitGpsLongitude} kb="numeric" isNum onChange={(v:any)=>updateSection('surveyorReport','visitGpsLongitude',v)} />
-            <StableInput label="Photos (URLs)" val={form.surveyorReport.residencePhotos} onChange={(v:any)=>updateSection('surveyorReport','residencePhotos',v)} />
             <StableInput label="Residence Condition" val={form.surveyorReport.residenceCondition} onChange={(v:any)=>updateSection('surveyorReport','residenceCondition',v)} />
             <View style={styles.row}><Text style={styles.label}>Family Present?</Text><Switch value={form.surveyorReport.familyPresent} onValueChange={(v)=>updateSection('surveyorReport','familyPresent',v)} /></View>
             <StableInput label="Verified Members" val={form.surveyorReport.familyMembersVerified} kb="numeric" isNum onChange={(v:any)=>updateSection('surveyorReport','familyMembersVerified',v)} />
             <View style={styles.row}><Text style={styles.label}>Address Verified?</Text><Switch value={form.surveyorReport.addressVerified} onValueChange={(v)=>updateSection('surveyorReport','addressVerified',v)} /></View>
             <View style={styles.row}><Text style={styles.label}>Utility Bill Verified?</Text><Switch value={form.surveyorReport.utilityBillVerified} onValueChange={(v)=>updateSection('surveyorReport','utilityBillVerified',v)} /></View>
-            <View style={styles.row}><Text style={styles.label}>Family Size Verified?</Text><Switch value={form.surveyorReport.familySizeVerified} onValueChange={(v)=>updateSection('surveyorReport','familySizeVerified',v)} /></View>
             <View style={styles.row}><Text style={styles.label}>Income Verified?</Text><Switch value={form.surveyorReport.incomeVerified} onValueChange={(v)=>updateSection('surveyorReport','incomeVerified',v)} /></View>
             <StableInput label="Neighbors Contacted" val={form.surveyorReport.neighborsContacted} kb="numeric" isNum onChange={(v:any)=>updateSection('surveyorReport','neighborsContacted',v)} />
             <StableInput label="Neighborhood Feedback" val={form.surveyorReport.neighborhoodFeedback} onChange={(v:any)=>updateSection('surveyorReport','neighborhoodFeedback',v)} />
-            <StableInput label="Community Reputation" val={form.surveyorReport.communityReputation} onChange={(v:any)=>updateSection('surveyorReport','communityReputation',v)} />
             <StableInput label="Recommendation" val={form.surveyorReport.recommendation} onChange={(v:any)=>updateSection('surveyorReport','recommendation',v)} />
-            <StableInput label="Red Flags" val={form.surveyorReport.redFlags} onChange={(v:any)=>updateSection('surveyorReport','redFlags',v)} />
-            <StableInput label="Strengths" val={form.surveyorReport.strengths} onChange={(v:any)=>updateSection('surveyorReport','strengths',v)} />
             <Text style={styles.fLabel}>Surveyor Remarks</Text>
             <TextInput style={styles.tArea} multiline value={form.surveyorReport.surveyorRemarks} onChangeText={(v)=>updateSection('surveyorReport','surveyorRemarks',v)} />
           </View>
         )}
 
+        {currentStep === 7 && (
+          <View>
+            <Text style={styles.secH}>7. Documents</Text>
+            <View style={styles.card}>
+              {[
+                { label: 'Aadhaar Card', value: 'AADHAAR_CARD' },
+                { label: 'Income Proof', value: 'INCOME_PROOF' },
+                { label: 'Utility Bill', value: 'UTILITY_BILL' },
+                { label: 'Family Photo', value: 'FAMILY_PHOTO' },
+                { label: 'Bank Statement', value: 'BANK_STATEMENT' }
+              ].map((item) => {
+                const isUploaded = uploadedDocs.includes(item.value);
+                return (
+                  <TouchableOpacity 
+                    key={item.value} 
+                    style={[styles.upRow, isUploaded && {borderColor: '#22C55E'}]} 
+                    onPress={() => pickAndUpload(item.value)}
+                    disabled={uploading}
+                  >
+                    <View style={{flex:1}}>
+                      <Text style={styles.docName}>{item.label}</Text>
+                      <Text style={{color: isUploaded ? '#22C55E' : '#64748B', fontSize: 11}}>
+                        {isUploaded ? '✓ Uploaded Successfully' : 'Tap to select & upload'}
+                      </Text>
+                    </View>
+                    <View style={[styles.upIcon, isUploaded && {backgroundColor: '#22C55E'}]}>
+                      {uploading ? <ActivityIndicator size="small" color="#FFF" /> : <Text style={{color:'#FFF', fontWeight:'bold'}}>UP</Text>}
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            {uploading && <ActivityIndicator color="#16476A" style={{marginTop: 10}} />}
+          </View>
+        )}
+
         <View style={styles.navRow}>
           {currentStep > 1 && <TouchableOpacity style={styles.bBtn} onPress={()=>setCurrentStep(s=>s-1)}><Text style={styles.bText}>Back</Text></TouchableOpacity>}
-          {currentStep < 6 ? (
+          {currentStep < 7 ? (
             <TouchableOpacity style={styles.nBtn} onPress={()=>setCurrentStep(s=>s+1)}><Text style={{color:'#FFF', fontWeight:'bold'}}>Next</Text></TouchableOpacity>
           ) : (
             <TouchableOpacity style={styles.sBtn} onPress={submitFinal}>
@@ -286,39 +390,33 @@ export default function FillDoneeProfile({ route, navigation }: any) {
 
 const styles = StyleSheet.create({
   cont: { flex: 1, backgroundColor: '#FFF' },
-  
-  // New Stepper Styles
-  stepContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 35, paddingVertical: 20, backgroundColor: '#F8FAFC' },
+  stepContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 30, paddingVertical: 20, backgroundColor: '#F8FAFC' },
   progressBarBackground: { position: 'absolute', height: 4, backgroundColor: '#E2E8F0', left: 45, right: 45, top: 38, borderRadius: 2 },
   progressBarFill: { height: 4, backgroundColor: '#16476A', borderRadius: 2 },
   stepCircleWrapper: { alignItems: 'center' },
-  stepCircle: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center', borderWidth: 2, zIndex: 1 },
+  stepCircle: { width: 34, height: 34, borderRadius: 17, justifyContent: 'center', alignItems: 'center', borderWidth: 2, zIndex: 1 },
   activeCircle: { backgroundColor: '#16476A', borderColor: '#16476A' },
   inactiveCircle: { backgroundColor: '#FFF', borderColor: '#E2E8F0' },
-  stepText: { fontSize: 14, fontWeight: 'bold' },
+  stepText: { fontSize: 12, fontWeight: 'bold' },
   activeText: { color: '#FFF' },
   inactiveText: { color: '#64748B' },
-
   secH: { fontSize: 22, fontWeight: 'bold', color: '#16476A', marginVertical: 20 },
   fWrap: { marginBottom: 15 },
-  fLabel: { fontSize: 13, color: '#475569', marginBottom: 6, fontWeight: 'bold', textTransform: 'uppercase' },
+  fLabel: { fontSize: 12, color: '#475569', marginBottom: 6, fontWeight: 'bold', textTransform: 'uppercase' },
   fInput: { backgroundColor: '#F8FAFC', padding: 14, borderRadius: 10, borderWidth: 1, borderColor: '#CBD5E1', color: '#000' },
-  
-  // Picker Container
   pickerCont: { backgroundColor: '#F8FAFC', borderRadius: 10, borderWidth: 1, borderColor: '#CBD5E1', overflow: 'hidden' },
-  
-  card: { padding: 15, backgroundColor: '#F1F5F9', borderRadius: 15, marginVertical: 12, borderWidth: 1, borderColor: '#E2E8F0' },
+  card: { padding: 15, backgroundColor: '#F1F5F9', borderRadius: 15, marginVertical: 10, borderWidth: 1, borderColor: '#E2E8F0' },
   tArea: { backgroundColor: '#F8FAFC', padding: 12, borderRadius: 10, borderWidth: 1, borderColor: '#CBD5E1', height: 100, textAlignVertical: 'top' },
-  
   addB: { padding: 15, alignItems: 'center', borderStyle: 'dashed', borderWidth: 2, borderColor: '#16476A', borderRadius: 10, marginVertical: 15, backgroundColor: '#F0F9FF' },
   addText: { color: '#16476A', fontWeight: 'bold' },
-  
   navRow: { flexDirection: 'row', marginTop: 20, gap: 10 },
-  nBtn: { flex: 2, backgroundColor: '#16476A', padding: 18, borderRadius: 12, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 },
+  nBtn: { flex: 2, backgroundColor: '#16476A', padding: 18, borderRadius: 12, alignItems: 'center' },
   bBtn: { flex: 1, backgroundColor: '#F1F5F9', padding: 18, borderRadius: 12, alignItems: 'center', borderWidth: 1, borderColor: '#E2E8F0' },
   bText: { color: '#475569', fontWeight: 'bold' },
-  sBtn: { flex: 2, backgroundColor: '#22C55E', padding: 18, borderRadius: 12, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 },
-  
+  sBtn: { flex: 2, backgroundColor: '#22C55E', padding: 18, borderRadius: 12, alignItems: 'center' },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
-  label: { fontSize: 15, color: '#1E293B', fontWeight: '500' }
+  label: { fontSize: 15, color: '#1E293B' },
+  upRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 15, backgroundColor: '#FFF', borderRadius: 10, marginBottom: 10, borderWidth: 1, borderColor: '#E2E8F0' },
+  docName: { fontWeight: 'bold', color: '#1E293B', fontSize: 14 },
+  upIcon: { backgroundColor: '#16476A', width: 36, height: 36, borderRadius: 8, justifyContent: 'center', alignItems: 'center' }
 });
