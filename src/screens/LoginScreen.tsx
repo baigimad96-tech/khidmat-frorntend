@@ -23,7 +23,6 @@ export default function LoginScreen({ navigation }: any) {
 
   const handleModalClose = () => {
     setModalVisible(false);
-    // FIX: Success hone par aur data hone par navigate karein
     if (!modalMsg.isError && tempUserData) {
       navigation.replace('MainApp', { user: tempUserData });
     }

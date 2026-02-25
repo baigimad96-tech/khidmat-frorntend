@@ -1,13 +1,20 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Text, StyleSheet } from 'react-native';
-import Dashboard from '../screens/Dashboard';
+import { Text } from 'react-native';
+// Dono dashboards import karein
+import Dashboard from '../screens/Dashboard'; 
+import DonorDashboard from '../screens/DonorDashboard'; 
 import ProfileScreen from '../screens/Profile';
 import MoreSettingsScreen from '../screens/MoreSettingsScreen';
+
 const Tab = createBottomTabNavigator();
 
 export default function TabNavigator({ route }: any) {
   const { user } = route.params || {};
+  const userRole = user?.user?.role?.toUpperCase(); // Role extraction
+
+  // Role ke basis pe Dashboard component select karna
+  const DashboardComponent = userRole === 'ADMIN' ? Dashboard : DonorDashboard;
 
   return (
     <Tab.Navigator
@@ -20,10 +27,14 @@ export default function TabNavigator({ route }: any) {
     >
       <Tab.Screen 
         name="Home" 
-        component={Dashboard} 
+        component={DashboardComponent} 
         initialParams={{ user }}
-        options={{ tabBarIcon: ({ color }) => <Text style={{fontSize: 20, color}}>🏠</Text> }}
+        options={{ 
+          tabBarLabel: userRole === 'ADMIN' ? 'Admin Hub' : 'Home',
+          tabBarIcon: ({ color }) => <Text style={{fontSize: 20, color}}>🏠</Text> 
+        }}
       />
+      {/* Baki tabs same rahenge */}
       <Tab.Screen 
         name="Profile" 
         component={ProfileScreen} 

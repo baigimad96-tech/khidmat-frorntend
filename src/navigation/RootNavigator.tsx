@@ -12,8 +12,8 @@ import AdminAssignmentScreen from '../screens/AdminAssignmentScreen';
 import SurveyorTasksScreen from '../screens/SurveyorTasksScreen';
 import FillDoneeProfile from '../screens/FillDoneeProfile';
 import AllApprovedDonees from '../screens/AllApprovedDonees';
-
-
+import DoneeApprovalScreen from '../screens/DoneeApprovalScreen';
+import DonorDashboard from '../screens/DonorDashboard';
 
 const Stack = createNativeStackNavigator();
 
@@ -28,7 +28,8 @@ export default function RootNavigator() {
       <Stack.Screen name="UserManagement" component={UserManagementScreen} />
       <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
       <Stack.Screen name="ProfileScreenDetail" component={ProfileScreen} />
-
+      <Stack.Screen name="DoneeApproval" component={DoneeApprovalScreen} />
+      <Stack.Screen name="DonorDashboard" component={DonorDashboard} />
       {/* ADMIN & SURVEYOR FLOW */}
       <Stack.Screen name="AdminAssignment" component={AdminAssignmentScreen} />
       <Stack.Screen name="SurveyorTasks" component={SurveyorTasksScreen} />

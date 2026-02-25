@@ -27,18 +27,20 @@ export default function UserManagementScreen({ route }: any) {
 
   const handleModalClose = () => setModalVisible(false);
 
+  // Helper to get headers
+  const getHeaders = () => ({
+    headers: { 
+      'Authorization': `Bearer ${user.accessToken}`,
+      'ngrok-skip-browser-warning': 'true' 
+    }
+  });
+
   const fetchUsers = useCallback(async () => {
     if (!user?.accessToken) return;
     try {
       setLoading(true);
-      // Endpoints from AdminUserApprovalController.java
       const endpoint = activeTab === 'pending' ? '/api/admin/users/pending' : '/api/admin/users/all';
-      const res = await axios.get(`${BASE_URL}${endpoint}`, {
-        headers: { 
-          'Authorization': `Bearer ${user.accessToken}`,
-          'ngrok-skip-browser-warning': 'true' 
-        }
-      });
+      const res = await axios.get(`${BASE_URL}${endpoint}`, getHeaders());
       const fetchedUsers = res.data?.users || [];
       setUsers(Array.isArray(fetchedUsers) ? fetchedUsers : []);
     } catch (error) {
@@ -76,11 +78,8 @@ export default function UserManagementScreen({ route }: any) {
 
   const handleApprove = async (userId: any) => {
     try {
-      await axios.post(`${BASE_URL}/api/admin/users/${userId}/approve`, {
-        adminId: user.userId 
-      }, {
-        headers: { 'Authorization': `Bearer ${user.accessToken}` }
-      });
+      // Body as 2nd arg, Headers as 3rd arg
+      await axios.post(`${BASE_URL}/api/admin/users/${userId}/approve`, { adminId: user.userId }, getHeaders());
       showPopup("Success ✨", "User has been approved successfully.", false); 
       fetchUsers();
     } catch (error) {
@@ -90,11 +89,7 @@ export default function UserManagementScreen({ route }: any) {
 
   const handleReject = async (userId: any) => {
     try {
-      await axios.post(`${BASE_URL}/api/admin/users/${userId}/reject`, {
-        reason: "Request declined by administrator" 
-      }, {
-        headers: { 'Authorization': `Bearer ${user.accessToken}` }
-      });
+      await axios.post(`${BASE_URL}/api/admin/users/${userId}/reject`, { reason: "Declined by admin" }, getHeaders());
       showPopup("Rejected", "User request has been declined.", true);
       fetchUsers();
     } catch (e) { 
@@ -102,14 +97,18 @@ export default function UserManagementScreen({ route }: any) {
     }
   };
 
-  // Active/Inactive logic based on provided URLs
   const toggleStatus = async (userId: any, currentActiveStatus: boolean) => {
     const action = currentActiveStatus ? 'deactivate' : 'activate';
     try {
-      // Using GET as per your provided URL structure: /api/v1/user/activate?currentUserId=2
-      await axios.post(`${BASE_URL}/api/v1/user/${action}?currentUserId=${userId}`, {
-        headers: { 'Authorization': `Bearer ${user.accessToken}` }
-      });
+      // 1. Fixed URL to /users/ (plural)
+      // 2. Added empty object as 2nd param (body)
+      // 3. Moved headers to 3rd param
+      await axios.post(
+        `${BASE_URL}/api/admin/users/${action}?userId=${userId}`, 
+        {}, 
+        getHeaders()
+      );
+      
       showPopup(
         currentActiveStatus ? "Deactivated" : "Activated", 
         `User is now ${action}d.`, 
@@ -117,7 +116,8 @@ export default function UserManagementScreen({ route }: any) {
       );
       fetchUsers();
     } catch (error) {
-      showPopup("Error", "Update failed.", true);
+      console.error("Status Update Error:", error);
+      showPopup("Error", "Unauthorized or request failed.", true);
     }
   };
 
@@ -235,6 +235,7 @@ export default function UserManagementScreen({ route }: any) {
   );
 }
 
+// ... styles remain the same as your previous version ...
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F0F5F5' },
   header: { padding: 20, backgroundColor: '#16476A', borderBottomLeftRadius: 30, borderBottomRightRadius: 30 },

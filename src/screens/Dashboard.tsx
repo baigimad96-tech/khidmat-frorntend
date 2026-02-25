@@ -1,158 +1,221 @@
 import React, { useState, useEffect } from 'react';
 import { 
   View, Text, StyleSheet, SafeAreaView, ScrollView, 
-  ActivityIndicator, Dimensions, RefreshControl 
+  ActivityIndicator, Dimensions, RefreshControl, TouchableOpacity 
 } from 'react-native';
 import axios from 'axios';
-import { PieChart, BarChart } from 'react-native-chart-kit';
+import { PieChart } from 'react-native-chart-kit';
 
 const { width } = Dimensions.get('window');
 const BASE_URL = 'https://perchable-freewheeling-faye.ngrok-free.dev';
 
-export default function AdminDashboard({ route }: any) {
-  const { user } = route.params;
-  const isAdmin = user?.role === 'ADMIN'; // Role Check
+interface User {
+  userId: number;
+  firstName: string;
+  lastName: string;
+  role: string;
+  active: boolean;
+  gender: string;
+  phone: string;
+  createdAt?: string;
+}
 
-  const [loading, setLoading] = useState(isAdmin); // Admin ke liye loading true, baaki ke liye false
+export default function AdminDashboard({ route, navigation }: any) {
+  const loginResponseData = route.params?.user; 
+  const userData = loginResponseData?.user;
+  const token = loginResponseData?.accessToken;
+
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [stats, setStats] = useState({
-    total: 0, donors: 0, donees: 0, surveyors: 0,
-    male: 0, female: 0, others: 0
+    active: 0, inactive: 0, total: 0,
+    maleTotal: 0, femaleTotal: 0,
+    genderMatrix: [[0, 0], [0, 0], [0, 0]], 
+    inactiveUsers: [] as User[]
   });
 
+  const processData = (users: User[]) => {
+    let act = 0, inact = 0, mTotal = 0, fTotal = 0;
+    let drM = 0, drF = 0, deM = 0, deF = 0, svM = 0, svF = 0;
+    let inactives: User[] = [];
+
+    users.forEach(u => {
+      if (u.role?.toUpperCase() === 'ADMIN') return;
+
+      if (u.active) act++; 
+      else { inact++; inactives.push(u); }
+      
+      const isF = u.gender?.toUpperCase() === 'FEMALE';
+      isF ? fTotal++ : mTotal++;
+
+      if (u.role === 'DONOR') isF ? drF++ : drM++;
+      else if (u.role === 'DONEE') isF ? deF++ : deM++;
+      else if (u.role === 'SURVEYOR') isF ? svF++ : svM++;
+    });
+
+    setStats({
+      active: act, inactive: inact, total: act + inact,
+      maleTotal: mTotal, femaleTotal: fTotal,
+      genderMatrix: [[drM, drF], [deM, deF], [svM, svF]],
+      inactiveUsers: inactives
+    });
+  };
+
   const fetchData = async () => {
-    if (!isAdmin) return; // Agar admin nahi hai toh API call mat karo
-    
     try {
       const res = await axios.get(`${BASE_URL}/api/admin/users/all`, {
-        headers: { 
-          Authorization: `Bearer ${user.accessToken}`, 
-          'ngrok-skip-browser-warning': 'true' 
-        }
+        headers: { Authorization: `Bearer ${token}`, 'ngrok-skip-browser-warning': 'true' }
       });
-      const allUsers = res.data?.users || [];
-      
-      setStats({
-        total: allUsers.length,
-        donors: allUsers.filter((u: any) => u.role === 'DONOR').length,
-        donees: allUsers.filter((u: any) => u.role === 'DONEE').length,
-        surveyors: allUsers.filter((u: any) => u.role === 'SURVEYOR').length,
-        male: allUsers.filter((u: any) => u.gender?.toUpperCase() === 'MALE').length,
-        female: allUsers.filter((u: any) => u.gender?.toUpperCase() === 'FEMALE').length,
-        others: allUsers.filter((u: any) => !['MALE', 'FEMALE'].includes(u.gender?.toUpperCase())).length,
-      });
-    } catch (e) { 
-      console.log(e); 
-    } finally { 
-      setLoading(false); 
-      setRefreshing(false); 
-    }
+      processData(res.data.users || []);
+    } catch (e) { console.log(e); } finally { setLoading(false); setRefreshing(false); }
   };
 
-  useEffect(() => { 
-    fetchData(); 
-  }, []);
+  useEffect(() => { fetchData(); }, []);
 
-  const onRefresh = () => { 
-    setRefreshing(true); 
-    fetchData(); 
-  };
-
-  // --- UI FOR NON-ADMIN USERS ---
-  if (!isAdmin) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.welcomeCenter}>
-          <View style={styles.welcomeCard}>
-            <Text style={styles.welcomeEmoji}>✨</Text>
-            <Text style={styles.welcomeText}>Welcome back,</Text>
-            <Text style={styles.userName}>{user?.name || 'User'}</Text>
-            <View style={styles.roleBadge}>
-              <Text style={styles.roleText}>{user?.role}</Text>
-            </View>
-            <Text style={styles.subMessage}>You have successfully logged into the portal.</Text>
-          </View>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  // --- UI FOR ADMIN (DASHBOARD) ---
-  if (loading) return <View style={styles.center}><ActivityIndicator size="large" color="#16476A" /></View>;
-
-  const roleData = [
-    { name: 'Donors', population: stats.donors, color: '#4F46E5', legendFontColor: '#475569', legendFontSize: 12 },
-    { name: 'Donees', population: stats.donees, color: '#10B981', legendFontColor: '#475569', legendFontSize: 12 },
-    { name: 'Surveyors', population: stats.surveyors, color: '#F59E0B', legendFontColor: '#475569', legendFontSize: 12 },
+  // Chart 1: Status Data
+  const statusPieData = [
+    { name: 'Active', population: stats.active, color: '#10B981', legendFontColor: '#475569', legendFontSize: 12 },
+    { name: 'Inactive', population: stats.inactive, color: '#EF4444', legendFontColor: '#475569', legendFontSize: 12 },
   ];
+
+  // Chart 2: Gender Data
+  const genderPieData = [
+    { name: 'Male', population: stats.maleTotal, color: '#0F172A', legendFontColor: '#475569', legendFontSize: 12 },
+    { name: 'Female', population: stats.femaleTotal, color: '#38BDF8', legendFontColor: '#475569', legendFontSize: 12 },
+  ];
+
+  if (loading) return <View style={styles.center}><ActivityIndicator size="large" color="#0F172A" /></View>;
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView 
-        contentContainerStyle={{ padding: 15 }} 
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => {setRefreshing(true); fetchData();}} />}
       >
-        <Text style={styles.headerTitle}>Admin Dashboard</Text>
-        
-        <View style={styles.grid}>
-          <SummaryCard label="TOTAL USERS" value={stats.total} color="#4F46E5" />
-          <SummaryCard label="SURVEYORS" value={stats.surveyors} color="#F59E0B" />
-        </View>
-        <View style={styles.grid}>
-          <SummaryCard label="DONEES" value={stats.donees} color="#10B981" />
-          <SummaryCard label="DONORS" value={stats.donors} color="#EC4899" />
+        <View style={styles.topHeader}>
+          <Text style={styles.greet}>Welcome</Text>
+          <Text style={styles.adminName}>{userData?.firstName} {userData?.lastName}</Text>
         </View>
 
-        <View style={styles.chartContainer}>
-          <Text style={styles.chartTitle}>User Distribution</Text>
-          <PieChart data={roleData} width={width - 40} height={200} chartConfig={chartConfig} accessor="population" backgroundColor="transparent" paddingLeft="15" absolute />
+        {/* Management Actions Section */}
+        <View style={styles.sectionContainer}>
+          <Text style={styles.sectionTitle}>User Management</Text>
+          <View style={styles.menuGrid}>
+            <ToolButton title="Users" sub="Verify Roles" color="#F0F9FF" text="#0369A1" onPress={() => navigation.navigate('UserManagement', { user: loginResponseData })} />
+            <ToolButton title="Approvals" sub="Donee Status" color="#F0FDF4" text="#15803D" onPress={() => navigation.navigate('DoneeApproval', { user: loginResponseData })} />
+            <ToolButton title="Assignments" sub="Task Staff" color="#FFFBEB" text="#B45309" onPress={() => navigation.navigate('AdminAssignment', { user: loginResponseData })} />
+            <ToolButton title="Settings" sub="System Config" color="#F8FAFC" text="#475569" onPress={() => navigation.navigate('MoreSettings', { user: loginResponseData })} />
+          </View>
         </View>
 
-        <View style={styles.chartContainer}>
-          <Text style={styles.chartTitle}>Gender Analysis</Text>
-          <BarChart
-            data={{ labels: ["Male", "Female", "Others"], datasets: [{ data: [stats.male, stats.female, stats.others] }] }}
-            width={width - 40} height={220} yAxisLabel="" yAxisSuffix=""
-            chartConfig={barChartConfig} style={{ borderRadius: 16, marginTop: 10 }}
-          />
+        {/* Double Pie Charts Section */}
+        <View style={styles.sectionContainer}>
+          <Text style={styles.sectionTitle}>User Account Status</Text>
+          
+          <View style={styles.chartCard}>
+             {stats.total > 0 ? (
+                <PieChart
+                    data={statusPieData}
+                    width={width - 50}
+                    height={150}
+                    chartConfig={chartConfig}
+                    accessor={"population"}
+                    backgroundColor={"transparent"}
+                    paddingLeft={"15"}
+                    absolute
+                />
+             ) : <Text style={styles.emptyTxt}>No status data</Text>}
+          </View>
+
+          <View style={[styles.chartCard, {marginTop: 15}]}>
+             <Text style={styles.innerLabel}>Gender Distribution</Text>
+             {stats.total > 0 ? (
+                <PieChart
+                    data={genderPieData}
+                    width={width - 50}
+                    height={150}
+                    chartConfig={chartConfig}
+                    accessor={"population"}
+                    backgroundColor={"transparent"}
+                    paddingLeft={"15"}
+                    absolute
+                />
+             ) : <Text style={styles.emptyTxt}>No gender data</Text>}
+             
+             {/* Breakdown Table */}
+             <View style={styles.dataTable}>
+                <View style={styles.dataRow}><Text style={styles.dataHeader}>Role</Text><Text style={styles.dataHeader}>M</Text><Text style={styles.dataHeader}>F</Text></View>
+                {["Donors", "Donees", "Staff"].map((role, i) => (
+                    <View key={i} style={styles.dataRow}>
+                    <Text style={styles.dataCellLabel}>{role}</Text>
+                    <Text style={styles.dataCell}>{stats.genderMatrix[i][0]}</Text>
+                    <Text style={styles.dataCell}>{stats.genderMatrix[i][1]}</Text>
+                    </View>
+                ))}
+             </View>
+          </View>
         </View>
+
+        {/* Inactive Users List */}
+        <View style={styles.sectionContainer}>
+          <Text style={styles.sectionTitle}>Inactive Users Activity</Text>
+          <View style={styles.listCard}>
+            {stats.inactiveUsers.length > 0 ? stats.inactiveUsers.map((u, i) => (
+              <View key={i} style={styles.userRow}>
+                <View style={styles.avatar}><Text style={styles.avatarTxt}>{u.firstName[0]}</Text></View>
+                <View style={{flex: 1}}>
+                  <Text style={styles.uName}>{u.firstName} {u.lastName}</Text>
+                  <Text style={styles.uRole}>{u.role} • {u.phone}</Text>
+                  {u.createdAt && <Text style={styles.uDate}>Joined: {new Date(u.createdAt).toLocaleDateString()}</Text>}
+                </View>
+                <View style={styles.statusBadge} />
+              </View>
+            )) : <Text style={styles.emptyTxt}>All users are currently active.</Text>}
+          </View>
+        </View>
+        <View style={{height: 40}} />
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-const SummaryCard = ({ label, value, color }: any) => (
-  <View style={[styles.card, { borderLeftColor: color }]}>
-    <Text style={styles.cardLabel}>{label}</Text>
-    <Text style={styles.cardValue}>{value}</Text>
-  </View>
+const ToolButton = ({ title, sub, color, text, onPress }: any) => (
+  <TouchableOpacity style={[styles.toolItem, { backgroundColor: color }]} onPress={onPress}>
+    <Text style={[styles.toolTitle, { color: text }]}>{title}</Text>
+    <Text style={styles.toolSub}>{sub}</Text>
+  </TouchableOpacity>
 );
 
-const chartConfig = { color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})` };
-const barChartConfig = {
-  backgroundColor: "#ffffff", backgroundGradientFrom: "#ffffff", backgroundGradientTo: "#ffffff",
-  decimalPlaces: 0, color: (opacity = 1) => `rgba(22, 71, 106, ${opacity})`,
-  labelColor: (opacity = 1) => `rgba(100, 116, 139, ${opacity})`,
+const chartConfig = {
+  color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC' },
+  container: { flex: 1, backgroundColor: '#F8FAFC', marginTop: 25 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  headerTitle: { fontSize: 24, fontWeight: 'bold', color: '#1E293B', marginBottom: 20 },
-  grid: { flexDirection: 'row', gap: 12, marginBottom: 12 },
-  card: { flex: 1, backgroundColor: '#FFF', padding: 15, borderRadius: 12, borderLeftWidth: 5, elevation: 2 },
-  cardLabel: { fontSize: 10, fontWeight: 'bold', color: '#94A3B8' },
-  cardValue: { fontSize: 22, fontWeight: 'bold', color: '#1E293B' },
-  chartContainer: { backgroundColor: '#FFF', padding: 15, borderRadius: 15, marginTop: 15, elevation: 1 },
-  chartTitle: { fontSize: 15, fontWeight: 'bold', color: '#1E293B' },
-  
-  // New Styles for non-admin welcome
-  welcomeCenter: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
-  welcomeCard: { backgroundColor: '#FFF', width: '100%', padding: 40, borderRadius: 30, alignItems: 'center', elevation: 10, shadowColor: '#16476A', shadowOpacity: 0.1, shadowRadius: 10 },
-  welcomeEmoji: { fontSize: 50, marginBottom: 20 },
-  welcomeText: { fontSize: 18, color: '#64748B', fontWeight: '600' },
-  userName: { fontSize: 32, fontWeight: '900', color: '#16476A', marginVertical: 5, textAlign: 'center' },
-  roleBadge: { backgroundColor: '#F0F5F5', paddingHorizontal: 15, paddingVertical: 5, borderRadius: 20, marginTop: 10 },
-  roleText: { color: '#16476A', fontWeight: '800', fontSize: 12, letterSpacing: 1 },
-  subMessage: { marginTop: 20, color: '#94A3B8', textAlign: 'center', fontSize: 14 }
+  topHeader: { padding: 25, backgroundColor: '#FFF', borderBottomLeftRadius: 30, borderBottomRightRadius: 30, elevation: 2 },
+  greet: { fontSize: 10, color: '#94A3B8', fontWeight: '800', letterSpacing: 1.5 },
+  adminName: { fontSize: 22, fontWeight: '900', color: '#0F172A' },
+  sectionContainer: { paddingHorizontal: 25, marginTop: 25 },
+  sectionTitle: { fontSize: 13, fontWeight: '900', color: '#64748B', marginBottom: 15, textTransform: 'uppercase', letterSpacing: 0.5 },
+  menuGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
+  toolItem: { width: '48%', padding: 18, borderRadius: 22, marginBottom: 12, elevation: 1 },
+  toolTitle: { fontSize: 16, fontWeight: '800' },
+  toolSub: { fontSize: 11, color: '#64748B', marginTop: 2 },
+  chartCard: { backgroundColor: '#FFF', padding: 15, borderRadius: 24, elevation: 2, alignItems: 'center' },
+  innerLabel: { fontSize: 12, fontWeight: '800', color: '#1E293B', alignSelf: 'flex-start', marginBottom: 5, paddingLeft: 5 },
+  dataTable: { width: '100%', marginTop: 10, paddingHorizontal: 10, borderTopWidth: 1, borderTopColor: '#F1F5F9', paddingTop: 10 },
+  dataRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 },
+  dataHeader: { fontSize: 9, fontWeight: '900', color: '#94A3B8', flex: 1, textAlign: 'center' },
+  dataCellLabel: { fontSize: 12, fontWeight: '700', color: '#475569', flex: 1 },
+  dataCell: { fontSize: 12, fontWeight: '900', color: '#0F172A', flex: 1, textAlign: 'center' },
+  listCard: { backgroundColor: '#FFF', borderRadius: 24, padding: 10, elevation: 2 },
+  userRow: { flexDirection: 'row', alignItems: 'center', padding: 12, borderBottomWidth: 1, borderBottomColor: '#F8FAFC' },
+  avatar: { width: 42, height: 42, borderRadius: 14, backgroundColor: '#F1F5F9', justifyContent: 'center', alignItems: 'center', marginRight: 15 },
+  avatarTxt: { fontWeight: 'bold', color: '#64748B' },
+  uName: { fontSize: 14, fontWeight: '700', color: '#1E293B' },
+  uRole: { fontSize: 11, color: '#94A3B8' },
+  uDate: { fontSize: 10, color: '#94A3B8', marginTop: 2 },
+  statusBadge: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#EF4444' },
+  emptyTxt: { textAlign: 'center', padding: 20, color: '#94A3B8', fontWeight: '600' }
 });

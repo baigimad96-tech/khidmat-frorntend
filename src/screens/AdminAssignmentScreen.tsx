@@ -27,28 +27,37 @@ export default function AdminAssignmentScreen({ route }: any) {
 
   useEffect(() => { fetchData(); }, []);
 
-  const fetchData = async () => {
+ const fetchData = async () => {
     setLoading(true);
     try {
       const doneeRes = await axios.get(`${BASE_URL}/api/admin/users/all-donee`, {
-        headers: { Authorization: `Bearer ${user.accessToken}`, 'ngrok-skip-browser-warning': 'true' }
+        headers: { 
+          Authorization: `Bearer ${user.accessToken}`, 
+          'ngrok-skip-browser-warning': 'true' 
+        }
       });
       
       const surveyorRes = await axios.get(`${BASE_URL}/api/admin/users/all-available-surveyor`, {
-        headers: { Authorization: `Bearer ${user.accessToken}`, 'ngrok-skip-browser-warning': 'true' }
+        headers: { 
+          Authorization: `Bearer ${user.accessToken}`, 
+          'ngrok-skip-browser-warning': 'true' 
+        }
       });
 
-      setDonees(doneeRes.data.donees || []);
+      const allDonees = doneeRes.data.donees || [];
+      const pendingDonees = allDonees.filter((d: any) => d.verificationStatus !== "APPROVED");
       
-      // Updated to match your API response structure
+      setDonees(pendingDonees);
+      
       const svs = surveyorRes.data?.surveyors || [];
       setSurveyors(svs);
       setFilteredSurveyors(svs);
     } catch (e) {
       Alert.alert("Error", "Data loading failed");
-    } finally { setLoading(false); }
+    } finally { 
+      setLoading(false); 
+    }
   };
-
   // Search Logic updated for fullName
   const handleSearch = (text: string) => {
     setSearchQuery(text);

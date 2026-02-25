@@ -39,11 +39,24 @@ export default function MoreSettingsScreen({ route, navigation }: any) {
         {isAdmin && (
           <>
             <Text style={styles.sectionTitle}>Administrator</Text>
+            
             <TouchableOpacity 
               style={styles.menuItem} 
               onPress={() => navigation.navigate('UserManagement', { user })}
             >
               <Text style={styles.menuLabel}>User Management</Text>
+              <Text style={styles.arrow}>›</Text>
+            </TouchableOpacity>
+
+            {/* NAYA SECTION: DONEE APPROVAL CARD */}
+            <TouchableOpacity 
+              style={[styles.menuItem, { marginTop: 15 }]} 
+              onPress={() => navigation.navigate('DoneeApproval', { user })}
+            >
+              <View>
+                <Text style={styles.menuLabel}>Donee Approval</Text>
+                <Text style={styles.subLabel}>Approve survey completed donees</Text>
+              </View>
               <Text style={styles.arrow}>›</Text>
             </TouchableOpacity>
 
@@ -126,6 +139,7 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 13, fontWeight: '900', color: '#94A3B8', marginBottom: 15, textTransform: 'uppercase' },
   menuItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#FFF', padding: 20, borderRadius: 18, elevation: 1 },
   menuLabel: { fontSize: 16, fontWeight: '700', color: '#16476A' },
+  subLabel: { fontSize: 12, color: '#94A3B8', marginTop: 2 }, // Naya style sub-text ke liye
   arrow: { fontSize: 20, color: '#CBD5E1' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
   modalContent: { width: '85%', backgroundColor: '#FFF', borderRadius: 25, padding: 30, alignItems: 'center' },
