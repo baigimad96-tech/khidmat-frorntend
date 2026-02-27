@@ -125,7 +125,7 @@ export default function ProfileScreen({ route, navigation }: any) {
     <SafeAreaView style={styles.safe}>
       <StatusBar barStyle="light-content" backgroundColor="#16476A" />
 
-      {/* --- MODERN EDIT MODAL --- */}
+      {/* --- EDIT MODAL --- */}
       <Modal visible={isEditModalVisible} animationType="slide" presentationStyle="fullScreen">
         <SafeAreaView style={styles.editContainer}>
           <View style={styles.editNavbar}>
@@ -189,45 +189,63 @@ export default function ProfileScreen({ route, navigation }: any) {
           <View style={{width: 30}} />
       </View>
 
-      {/* Main Content Card */}
-      <View style={styles.mainContent}>
-          <View style={styles.miniProfileCard}>
-            <TouchableOpacity onPress={() => setOptionsModalVisible(true)} style={styles.miniAvatar}>
-               {fetching ? <ActivityIndicator size="small" /> : profileImgUri ? (
-                <Image 
-                  key={profileImgUri} 
-                  source={{ uri: profileImgUri, headers: { 'ngrok-skip-browser-warning': 'true', 'Authorization': `Bearer ${token}` } }} 
-                  style={styles.fullImg} 
-                  resizeMode="cover" 
-                />
-               ) : <Text style={styles.miniInitial}>{formData.firstName ? formData.firstName[0].toUpperCase() : 'U'}</Text>}
-            </TouchableOpacity>
-            <View style={styles.miniInfo}>
-                <Text style={styles.miniName}>{formData.firstName} {formData.lastName}</Text>
-                <View style={styles.miniRow}>
-                  <View style={styles.badge}><Text style={styles.badgeTxt}>{formData.role}</Text></View>
-                  <Text style={styles.miniPhone}>{formData.phone || 'No Phone'}</Text>
-                </View>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <View style={styles.mainContent}>
+            <View style={styles.miniProfileCard}>
+              <TouchableOpacity onPress={() => setOptionsModalVisible(true)} style={styles.miniAvatar}>
+                 {fetching ? <ActivityIndicator size="small" /> : profileImgUri ? (
+                  <Image 
+                    key={profileImgUri} 
+                    source={{ uri: profileImgUri, headers: { 'ngrok-skip-browser-warning': 'true', 'Authorization': `Bearer ${token}` } }} 
+                    style={styles.fullImg} 
+                    resizeMode="cover" 
+                  />
+                 ) : <Text style={styles.miniInitial}>{formData.firstName ? formData.firstName[0].toUpperCase() : 'U'}</Text>}
+              </TouchableOpacity>
+              <View style={styles.miniInfo}>
+                  <Text style={styles.miniName}>{formData.firstName} {formData.lastName}</Text>
+                  <View style={styles.miniRow}>
+                    <View style={styles.badge}><Text style={styles.badgeTxt}>{formData.role}</Text></View>
+                    <Text style={styles.miniPhone}>{formData.phone || 'No Phone'}</Text>
+                  </View>
+              </View>
+              <TouchableOpacity onPress={() => setEditModalVisible(true)} style={styles.pencilBtn}><Text style={{fontSize: 20}}>✎</Text></TouchableOpacity>
             </View>
-            <TouchableOpacity onPress={() => setEditModalVisible(true)} style={styles.pencilBtn}><Text style={{fontSize: 20}}>✎</Text></TouchableOpacity>
-          </View>
-          <View style={styles.welcomeContainer}>
-            <Text style={styles.welcomeTitle}>Hello, {formData.firstName}! 👋</Text>
-            <Text style={styles.welcomeSub}>Your current ID is {userId}. Update your details using the edit icon above.</Text>
-          </View>
-      </View>
 
-      {formData.role === 'DONOR' && (
-  <TouchableOpacity 
-    style={styles.donorLinkBtn} 
-    onPress={() => navigation.navigate('AllApprovedDonees', { user })}
-  >
-    <Text style={styles.donorLinkText}>🤝 View All Approved Donees</Text>
-    <Text style={styles.donorLinkSub}>Browse families who need your support</Text>
-  </TouchableOpacity>
-)}
+            <View style={styles.welcomeContainer}>
+              <Text style={styles.welcomeTitle}>Hello, {formData.firstName}! 👋</Text>
+              <Text style={styles.welcomeSub}>Your current ID is {userId}. Update your details using the edit icon above.</Text>
+            </View>
 
-      {/* Photo Options Modal */}
+            {/* --- NEW CREATE DONEE CARD FOR SURVEYOR --- */}
+            {formData.role === 'SURVEYOR' && (
+              <TouchableOpacity 
+                style={styles.actionCard} 
+                onPress={() => navigation.navigate('Registration')}
+              >
+                
+                <View style={{flex: 1, marginLeft: 15}}>
+                  <Text style={styles.actionTitle}>Create Donee</Text>
+                  <Text style={styles.actionSub}>Click here to register a new donee profile</Text>
+                </View>
+                <Text style={styles.arrowIcon}>〉</Text>
+              </TouchableOpacity>
+            )}
+
+            {/* --- DONOR LINK CARD --- */}
+            {formData.role === 'DONOR' && (
+              <TouchableOpacity 
+                style={styles.donorLinkBtn} 
+                onPress={() => navigation.navigate('AllApprovedDonees', { user })}
+              >
+                <Text style={styles.donorLinkText}>🤝 View All Approved Donees</Text>
+                <Text style={styles.donorLinkSub}>Browse families who need your support</Text>
+              </TouchableOpacity>
+            )}
+        </View>
+      </ScrollView>
+
+      {/* --- PHOTO OPTIONS MODAL --- */}
       <Modal visible={isOptionsModalVisible} transparent animationType="slide">
         <TouchableOpacity style={styles.bottomOverlay} activeOpacity={1} onPress={() => setOptionsModalVisible(false)}>
           <View style={styles.optionsSheet}>
@@ -246,7 +264,7 @@ export default function ProfileScreen({ route, navigation }: any) {
         </TouchableOpacity>
       </Modal>
 
-      {/* Confirm Action Modal (Preview Logic Fixed) */}
+      {/* --- CONFIRM MODAL --- */}
       <Modal visible={isConfirmModalVisible} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -258,17 +276,17 @@ export default function ProfileScreen({ route, navigation }: any) {
             )}
             <Text style={styles.modalTitle}>Confirm Action</Text>
             <Text style={styles.modalBody}>Do you want to proceed with this photo update?</Text>
-            <View style={styles.modalBtnRow}>
+            <div style={styles.modalBtnRow}>
               <TouchableOpacity style={[styles.modalBtn, {backgroundColor:'#F1F5F9'}]} onPress={()=>{setConfirmModalVisible(false); setSelectedImage(null);}}><Text>No</Text></TouchableOpacity>
               <TouchableOpacity style={[styles.modalBtn, {backgroundColor:'#16476A'}]} onPress={()=>handleImageAction()}>
                 {loading ? <ActivityIndicator color="#FFF"/> : <Text style={{color:'#FFF', fontWeight:'bold'}}>Yes</Text>}
               </TouchableOpacity>
-            </View>
+            </div>
           </View>
         </View>
       </Modal>
 
-      {/* Status Modal */}
+      {/* --- STATUS MODAL --- */}
       <Modal visible={statusModalVisible} transparent animationType="fade">
         <View style={styles.modalOverlay}><View style={styles.modalContent}>
             <Text style={[styles.modalTitle, {color: statusMsg.isError ? '#EF4444' : '#16476A'}]}>{statusMsg.title}</Text>
@@ -325,19 +343,45 @@ const styles = StyleSheet.create({
   previewImage: { width: 90, height: 90, borderRadius: 45, borderWidth: 3, borderColor: '#16476A' },
   previewLabel: { fontSize: 10, fontWeight: 'bold', color: '#16476A', marginTop: 5 },
   donorLinkBtn: {
-  marginTop: 20,
-  backgroundColor: '#FFF',
-  padding: 20,
-  borderRadius: 20,
-  borderWidth: 1,
-  borderColor: '#E2E8F0',
-  width: '100%',
-  alignItems: 'center',
-  elevation: 3,
-  shadowColor: '#16476A',
-  shadowOpacity: 0.1,
-  shadowRadius: 5,
-},
-donorLinkText: { color: '#16476A', fontWeight: 'bold', fontSize: 16 },
-donorLinkSub: { color: '#64748B', fontSize: 12, marginTop: 4 },
+    marginTop: 20,
+    backgroundColor: '#FFF',
+    padding: 20,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    width: '100%',
+    alignItems: 'center',
+    elevation: 3,
+    shadowColor: '#16476A',
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+  },
+  donorLinkText: { color: '#16476A', fontWeight: 'bold', fontSize: 16 },
+  donorLinkSub: { color: '#64748B', fontSize: 12, marginTop: 4 },
+  // Naya Action Card Style (Surveyor ke liye)
+  actionCard: {
+    backgroundColor: '#FFF',
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 18,
+    borderRadius: 22,
+    marginTop: 25,
+    elevation: 4,
+    shadowColor: '#16476A',
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  iconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#F0F9FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  actionTitle: { fontSize: 17, fontWeight: 'bold', color: '#16476A' },
+  actionSub: { fontSize: 12, color: '#64748B', marginTop: 2 },
+  arrowIcon: { fontSize: 16, color: '#CBD5E1', fontWeight: 'bold' },
 });
