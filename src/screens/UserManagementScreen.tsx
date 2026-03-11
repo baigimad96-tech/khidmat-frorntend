@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import axios from 'axios';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 const BASE_URL = 'https://perchable-freewheeling-faye.ngrok-free.dev'; 
 
 export default function UserManagementScreen({ route }: any) {
@@ -27,7 +27,6 @@ export default function UserManagementScreen({ route }: any) {
 
   const handleModalClose = () => setModalVisible(false);
 
-  // Helper to get headers
   const getHeaders = () => ({
     headers: { 
       'Authorization': `Bearer ${user.accessToken}`,
@@ -78,7 +77,6 @@ export default function UserManagementScreen({ route }: any) {
 
   const handleApprove = async (userId: any) => {
     try {
-      // Body as 2nd arg, Headers as 3rd arg
       await axios.post(`${BASE_URL}/api/admin/users/${userId}/approve`, { adminId: user.userId }, getHeaders());
       showPopup("Success ✨", "User has been approved successfully.", false); 
       fetchUsers();
@@ -100,15 +98,7 @@ export default function UserManagementScreen({ route }: any) {
   const toggleStatus = async (userId: any, currentActiveStatus: boolean) => {
     const action = currentActiveStatus ? 'deactivate' : 'activate';
     try {
-      // 1. Fixed URL to /users/ (plural)
-      // 2. Added empty object as 2nd param (body)
-      // 3. Moved headers to 3rd param
-      await axios.post(
-        `${BASE_URL}/api/admin/users/${action}?userId=${userId}`, 
-        {}, 
-        getHeaders()
-      );
-      
+      await axios.post(`${BASE_URL}/api/admin/users/${action}?userId=${userId}`, {}, getHeaders());
       showPopup(
         currentActiveStatus ? "Deactivated" : "Activated", 
         `User is now ${action}d.`, 
@@ -116,7 +106,6 @@ export default function UserManagementScreen({ route }: any) {
       );
       fetchUsers();
     } catch (error) {
-      console.error("Status Update Error:", error);
       showPopup("Error", "Unauthorized or request failed.", true);
     }
   };
@@ -132,7 +121,9 @@ export default function UserManagementScreen({ route }: any) {
             <Text style={styles.userName} numberOfLines={1}>
               {item?.firstName} {item?.lastName}
             </Text>
-            <View style={styles.roleChip}><Text style={styles.roleText}>{item?.role || 'USER'}</Text></View>
+            <View style={styles.roleChip}>
+              <Text style={styles.roleText}>{item?.role || 'USER'}</Text>
+            </View>
           </View>
           <Text style={styles.userEmail}>{item?.email}</Text>
           <Text style={styles.userPhone}>{item?.phone}</Text>
@@ -143,9 +134,9 @@ export default function UserManagementScreen({ route }: any) {
       </View>
 
       <View style={styles.cardFooter}>
-        <View style={[styles.pill, { backgroundColor: item?.active ? '#DCFCE7' : '#FEF3C7' }]}>
-          <Text style={[styles.pillText, { color: item?.active ? '#15803D' : '#B45309' }]}>
-            {item?.active ? '✓ Active' : '⏳ Pending'}
+        <View style={[styles.pill, { backgroundColor: item?.active ? '#DCFCE7' : '#FEF2F2' }]}>
+          <Text style={[styles.pillText, { color: item?.active ? '#15803D' : '#DC2626' }]}>
+            {item?.active ? '✓ Active Account' : '✕ Deactivated'}
           </Text>
         </View>
 
@@ -176,16 +167,16 @@ export default function UserManagementScreen({ route }: any) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#16476A" />
+      <StatusBar barStyle="light-content" backgroundColor="#000" />
       
-      <Modal animationType="fade" transparent={true} visible={modalVisible} onRequestClose={handleModalClose}>
+      <Modal animationType="fade" transparent={true} visible={modalVisible}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <View style={[styles.statusDotModal, { backgroundColor: modalMsg.isError ? '#DC2626' : '#059669' }]} />
+            <View style={[styles.statusDotModal, { backgroundColor: modalMsg.isError ? '#EF4444' : '#10B981' }]} />
             <Text style={styles.modalTitle}>{modalMsg.title}</Text>
             <Text style={styles.modalBody}>{modalMsg.body}</Text>
             <TouchableOpacity style={styles.modalBtnMain} onPress={handleModalClose}>
-              <Text style={styles.modalBtnTextMain}>OK</Text>
+              <Text style={styles.modalBtnTextMain}>CLOSE</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -195,13 +186,16 @@ export default function UserManagementScreen({ route }: any) {
         <Text style={styles.title}>User Management</Text>
         {activeTab === 'all' && (
           <View style={styles.searchContainer}>
-            <TextInput 
-              style={styles.searchBar} 
-              placeholder="Search user..." 
-              placeholderTextColor="#94A3B8"
-              value={searchQuery} 
-              onChangeText={setSearchQuery} 
-            />
+            <View style={styles.searchBarWrapper}>
+              <Text style={{paddingLeft: 12}}>🔍</Text>
+              <TextInput 
+                style={styles.searchBar} 
+                placeholder="Search user..." 
+                placeholderTextColor="#94A3B8"
+                value={searchQuery} 
+                onChangeText={setSearchQuery} 
+              />
+            </View>
             <TouchableOpacity onPress={toggleSort} style={styles.sortBtn}>
               <Text style={styles.sortBtnText}>{sortOrder === 'asc' ? 'A-Z' : 'Z-A'}</Text>
             </TouchableOpacity>
@@ -219,65 +213,149 @@ export default function UserManagementScreen({ route }: any) {
       </View>
 
       {loading && users.length === 0 ? (
-        <ActivityIndicator size="large" color="#16476A" style={{ marginTop: 50 }} />
+        <ActivityIndicator size="large" color="#000" style={{ marginTop: 50 }} />
       ) : (
         <FlatList
           data={displayData}
           keyExtractor={(item) => item.userId.toString()}
           renderItem={renderUserItem}
-          contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
-          ListEmptyComponent={<Text style={styles.emptyText}>No users found.</Text>}
+          contentContainerStyle={[
+            { padding: 20, paddingBottom: 40 },
+            displayData.length === 0 && { flex: 1, justifyContent: 'center' }
+          ]}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Text style={{fontSize: 50, marginBottom: 15}}>👥</Text>
+              <Text style={styles.emptyTitle}>No Users Found</Text>
+              <Text style={styles.emptySubtitle}>
+                {activeTab === 'pending' 
+                  ? "There are no pending registration requests at this moment." 
+                  : "We couldn't find any user accounts matching your criteria."}
+              </Text>
+            </View>
+          }
           refreshing={loading}
           onRefresh={fetchUsers}
+          showsVerticalScrollIndicator={false}
         />
       )}
     </SafeAreaView>
   );
 }
 
-// ... styles remain the same as your previous version ...
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F0F5F5' },
-  header: { padding: 20, backgroundColor: '#16476A', borderBottomLeftRadius: 30, borderBottomRightRadius: 30 },
-  title: { fontSize: 24, fontWeight: '900', color: '#FFF' },
-  searchContainer: { flexDirection: 'row', gap: 10, marginTop: 15 },
-  searchBar: { flex: 1, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 12, padding: 12, color: '#FFF' },
-  sortBtn: { backgroundColor: '#FFF', paddingHorizontal: 15, borderRadius: 12, justifyContent: 'center' },
-  sortBtnText: { color: '#16476A', fontWeight: 'bold' },
-  tabContainer: { flexDirection: 'row', backgroundColor: 'transparent', marginTop: 10, paddingHorizontal: 10 },
-  tab: { flex: 1, padding: 15, alignItems: 'center' },
-  activeTab: { borderBottomWidth: 4, borderBottomColor: '#16476A' },
-  tabText: { fontWeight: '800', color: '#94A3B8' },
-  activeTabText: { color: '#16476A' },
-  card: { backgroundColor: '#FFF', borderRadius: 20, padding: 16, marginBottom: 15, elevation: 3 },
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
+  header: { 
+    padding: 25, 
+    backgroundColor: '#000', 
+    borderBottomLeftRadius: 35, 
+    borderBottomRightRadius: 35 
+  },
+  title: { fontSize: 26, fontWeight: '900', color: '#FFF', letterSpacing: -0.5 },
+  searchContainer: { flexDirection: 'row', gap: 10, marginTop: 20 },
+  searchBarWrapper: { 
+    flex: 1, 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    backgroundColor: 'rgba(255,255,255,0.15)', 
+    borderRadius: 15 
+  },
+  searchBar: { flex: 1, padding: 12, color: '#FFF', fontWeight: '600' },
+  sortBtn: { backgroundColor: '#FFF', paddingHorizontal: 15, borderRadius: 15, justifyContent: 'center' },
+  sortBtnText: { color: '#000', fontWeight: '900', fontSize: 12 },
+  
+  tabContainer: { 
+    flexDirection: 'row', 
+    marginTop: 10, 
+    paddingHorizontal: 20, 
+    borderBottomWidth: 1, 
+    borderBottomColor: '#F1F5F9' 
+  },
+  tab: { flex: 1, paddingVertical: 18, alignItems: 'center' },
+  activeTab: { borderBottomWidth: 3, borderBottomColor: '#000' },
+  tabText: { fontWeight: '700', color: '#94A3B8', fontSize: 13 },
+  activeTabText: { color: '#000' },
+
+  card: { 
+    backgroundColor: '#FFF', 
+    borderRadius: 24, 
+    padding: 20, 
+    marginBottom: 16, 
+    borderWidth: 1, 
+    borderColor: '#F1F5F9',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 10
+  },
   cardHeader: { flexDirection: 'row', alignItems: 'center' },
-  avatar: { width: 50, height: 50, borderRadius: 25, backgroundColor: '#F0F5F5', justifyContent: 'center', alignItems: 'center' },
-  avatarText: { fontSize: 20, fontWeight: 'bold', color: '#16476A' },
-  infoSection: { marginLeft: 15, flex: 1 },
+  avatar: { 
+    width: 55, 
+    height: 55, 
+    borderRadius: 18, 
+    backgroundColor: '#F8FAFC', 
+    justifyContent: 'center', 
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#F1F5F9'
+  },
+  avatarText: { fontSize: 22, fontWeight: '900', color: '#000' },
+  infoSection: { marginLeft: 16, flex: 1 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  userName: { fontSize: 17, fontWeight: '900', color: '#16476A' },
-  roleChip: { backgroundColor: '#E2E8F0', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
-  roleText: { fontSize: 10, fontWeight: 'bold', color: '#16476A' },
-  userEmail: { fontSize: 13, color: '#64748B', marginTop: 2 },
-  userPhone: { fontSize: 12, color: '#94A3B8' },
+  userName: { fontSize: 18, fontWeight: '800', color: '#0F172A' },
+  roleChip: { backgroundColor: '#F1F5F9', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 8 },
+  roleText: { fontSize: 10, fontWeight: '900', color: '#64748B', textTransform: 'uppercase' },
+  userEmail: { fontSize: 13, color: '#64748B', marginTop: 3, fontWeight: '500' },
+  userPhone: { fontSize: 12, color: '#94A3B8', marginTop: 2, fontWeight: '600' },
   statusIndicator: { width: 10, height: 10, borderRadius: 5 },
-  cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 15, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#F1F5F9' },
-  pill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
-  pillText: { fontSize: 11, fontWeight: 'bold' },
+  
+  cardFooter: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center', 
+    marginTop: 18, 
+    paddingTop: 15, 
+    borderTopWidth: 1, 
+    borderTopColor: '#F8FAFC' 
+  },
+  pill: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 },
+  pillText: { fontSize: 11, fontWeight: '800' },
+  
   actions: { flexDirection: 'row' },
-  btnGroup: { flexDirection: 'row', gap: 8 },
-  approveBtn: { backgroundColor: '#16476A', paddingHorizontal: 15, paddingVertical: 8, borderRadius: 10 },
-  approveBtnText: { color: '#FFF', fontWeight: 'bold', fontSize: 12 },
-  rejectBtn: { backgroundColor: '#FFF', borderWidth: 1.5, borderColor: '#EF4444', paddingHorizontal: 15, paddingVertical: 8, borderRadius: 10 },
-  rejectBtnText: { color: '#EF4444', fontWeight: 'bold', fontSize: 12 },
-  toggleBtn: { paddingHorizontal: 15, paddingVertical: 8, borderRadius: 10 },
-  toggleBtnText: { fontSize: 12, fontWeight: 'bold' },
-  emptyText: { textAlign: 'center', marginTop: 40, color: '#94A3B8', fontWeight: '700' },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(22, 71, 106, 0.6)', justifyContent: 'center', alignItems: 'center', padding: 30 },
-  modalContent: { width: '100%', backgroundColor: '#FFF', borderRadius: 28, padding: 30, alignItems: 'center' },
-  statusDotModal: { width: 12, height: 12, borderRadius: 6, marginBottom: 15 },
-  modalTitle: { fontSize: 22, fontWeight: '900', color: '#16476A', marginBottom: 8, textAlign: 'center' },
-  modalBody: { fontSize: 14, color: '#475569', textAlign: 'center', marginBottom: 25, fontWeight: '600' },
-  modalBtnMain: { backgroundColor: '#16476A', width: '100%', paddingVertical: 14, borderRadius: 14, alignItems: 'center' },
-  modalBtnTextMain: { color: '#FFF', fontWeight: '800', letterSpacing: 1 }
+  btnGroup: { flexDirection: 'row', gap: 10 },
+  approveBtn: { backgroundColor: '#000', paddingHorizontal: 18, paddingVertical: 10, borderRadius: 12 },
+  approveBtnText: { color: '#FFF', fontWeight: '900', fontSize: 12 },
+  rejectBtn: { backgroundColor: '#FFF', borderWidth: 1.5, borderColor: '#EF4444', paddingHorizontal: 18, paddingVertical: 10, borderRadius: 12 },
+  rejectBtnText: { color: '#EF4444', fontWeight: '900', fontSize: 12 },
+  toggleBtn: { paddingHorizontal: 18, paddingVertical: 10, borderRadius: 12 },
+  toggleBtnText: { fontSize: 12, fontWeight: '900' },
+
+  // Empty State Styles
+  emptyContainer: { 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    marginTop: 40
+  },
+  emptyTitle: { 
+    fontSize: 22, 
+    fontWeight: '900', 
+    color: '#0F172A', 
+    marginBottom: 8 
+  },
+  emptySubtitle: { 
+    fontSize: 14, 
+    color: '#94A3B8', 
+    textAlign: 'center', 
+    paddingHorizontal: 40,
+    fontWeight: '600',
+    lineHeight: 20
+  },
+
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', padding: 25 },
+  modalContent: { width: '100%', backgroundColor: '#FFF', borderRadius: 32, padding: 30, alignItems: 'center' },
+  statusDotModal: { width: 50, height: 6, borderRadius: 3, marginBottom: 20 },
+  modalTitle: { fontSize: 24, fontWeight: '900', color: '#000', marginBottom: 10, textAlign: 'center' },
+  modalBody: { fontSize: 15, color: '#64748B', textAlign: 'center', marginBottom: 30, fontWeight: '600', lineHeight: 22 },
+  modalBtnMain: { backgroundColor: '#000', width: '100%', height: 56, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  modalBtnTextMain: { color: '#FFF', fontWeight: '900', letterSpacing: 1, fontSize: 14 }
 });

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   View, Text, StyleSheet, FlatList, TouchableOpacity, 
-  SafeAreaView, ActivityIndicator, Alert, ScrollView, TextInput, Modal 
+  SafeAreaView, ActivityIndicator, Alert, ScrollView, TextInput, Modal, StatusBar 
 } from 'react-native';
 import axios from 'axios';
 
@@ -21,13 +21,13 @@ export default function AdminAssignmentScreen({ route }: any) {
   const [showSurveyorModal, setShowSurveyorModal] = useState(false);
   const [selectedSurveyor, setSelectedSurveyor] = useState<any>(null);
 
-  const [visitDate, setVisitDate] = useState("2026-02-20");
+  const [visitDate, setVisitDate] = useState("2026-03-15");
   const [priority, setPriority] = useState("NORMAL");
   const [notes, setNotes] = useState("Routine verification visit.");
 
   useEffect(() => { fetchData(); }, []);
 
- const fetchData = async () => {
+  const fetchData = async () => {
     setLoading(true);
     try {
       const doneeRes = await axios.get(`${BASE_URL}/api/admin/users/all-donee`, {
@@ -48,7 +48,6 @@ export default function AdminAssignmentScreen({ route }: any) {
       const pendingDonees = allDonees.filter((d: any) => d.verificationStatus !== "APPROVED");
       
       setDonees(pendingDonees);
-      
       const svs = surveyorRes.data?.surveyors || [];
       setSurveyors(svs);
       setFilteredSurveyors(svs);
@@ -58,7 +57,7 @@ export default function AdminAssignmentScreen({ route }: any) {
       setLoading(false); 
     }
   };
-  // Search Logic updated for fullName
+
   const handleSearch = (text: string) => {
     setSearchQuery(text);
     if (text.trim() === '') {
@@ -71,115 +70,130 @@ export default function AdminAssignmentScreen({ route }: any) {
     }
   };
 
- const handleAssignment = async () => {
-  if (!selectedSurveyor) return Alert.alert("Wait", "Surveyor select karein");
-  setAssigning(true);
-  try {
-    await axios.post(`${BASE_URL}/api/v1/admin/assignments`, {
-      doneeId: selectedDonee.doneeId,
-      // userId ki jagah surveyorId bhejein
-      surveyorId: selectedSurveyor.surveyorId, 
-      scheduledVisitDate: visitDate,
-      priority: priority,
-      assignmentNotes: notes
-    }, { headers: { Authorization: `Bearer ${user.accessToken}` } });
-    
-    Alert.alert("Success ✨", "Surveyor assigned!");
-    setSelectedDonee(null);
-    setSelectedSurveyor(null);
-    fetchData();
-  } catch (e: any) {
-    // Agar ab bhi error aaye toh message check karne ke liye:
-    const errorMsg = e.response?.data?.message || "Assignment failed";
-    Alert.alert("Error", errorMsg);
-  } finally { setAssigning(false); }
-};
+  const handleAssignment = async () => {
+    if (!selectedSurveyor) return Alert.alert("Required", "Please select a surveyor first.");
+    setAssigning(true);
+    try {
+      await axios.post(`${BASE_URL}/api/v1/admin/assignments`, {
+        doneeId: selectedDonee.doneeId,
+        surveyorId: selectedSurveyor.surveyorId, 
+        scheduledVisitDate: visitDate,
+        priority: priority,
+        assignmentNotes: notes
+      }, { headers: { Authorization: `Bearer ${user.accessToken}` } });
+      
+      Alert.alert("Success ✨", "Surveyor assigned successfully!");
+      setSelectedDonee(null);
+      setSelectedSurveyor(null);
+      fetchData();
+    } catch (e: any) {
+      const errorMsg = e.response?.data?.message || "Assignment failed";
+      Alert.alert("Error", errorMsg);
+    } finally { setAssigning(false); }
+  };
 
+  // --- SUB-SCREEN: ASSIGNMENT FORM ---
   if (selectedDonee) {
     return (
       <SafeAreaView style={styles.container}>
-        <ScrollView style={styles.detailContainer} showsVerticalScrollIndicator={false}>
-          <TouchableOpacity onPress={() => setSelectedDonee(null)} style={styles.backBtn}>
-            <Text style={styles.backBtnTxt}>← Back to Requests</Text>
-          </TouchableOpacity>
+        <StatusBar barStyle="dark-content" backgroundColor="#FFF" />
+        <View style={styles.detailHeader}>
+            <TouchableOpacity onPress={() => setSelectedDonee(null)} style={styles.backCircle}>
+                <Text style={{fontSize: 20, fontWeight: '900'}}>←</Text>
+            </TouchableOpacity>
+            <Text style={styles.detailHeaderTitle}>Assign Surveyor</Text>
+        </View>
 
+        <ScrollView style={styles.detailContainer} showsVerticalScrollIndicator={false}>
           <View style={styles.profileBox}>
-            <Text style={styles.title}>{selectedDonee.fullName}</Text>
-            <Text style={styles.phoneSub}>📞 {selectedDonee.phone}</Text>
+            <View style={styles.avatarLarge}>
+                <Text style={styles.avatarLargeText}>{(selectedDonee.fullName || 'D')[0]}</Text>
+            </View>
+            <Text style={styles.titleText}>{selectedDonee.fullName}</Text>
+            <Text style={styles.phoneSubText}>📞 {selectedDonee.phone}</Text>
             
             <View style={styles.divider} />
 
             <View style={styles.infoGrid}>
-              <View style={styles.infoRow}><Text style={styles.labelSmall}>ROAD:</Text><Text style={styles.infoValue}>{selectedDonee.road || 'N/A'}</Text></View>
-              <View style={styles.infoRow}><Text style={styles.labelSmall}>LOCALITY:</Text><Text style={styles.infoValue}>{selectedDonee.locality || 'N/A'}</Text></View>
-              <View style={styles.infoRow}><Text style={styles.labelSmall}>CITY:</Text><Text style={styles.infoValue}>{selectedDonee.currentCity}</Text></View>
-              <View style={styles.infoRow}><Text style={styles.labelSmall}>STATE:</Text><Text style={styles.infoValue}>{selectedDonee.state}</Text></View>
-              <View style={styles.infoRow}><Text style={styles.labelSmall}>PINCODE:</Text><Text style={styles.infoValue}>{selectedDonee.postalCode}</Text></View>
+              <View style={styles.infoRow}><Text style={styles.labelSmall}>CITY</Text><Text style={styles.infoValue}>{selectedDonee.currentCity}</Text></View>
+              <View style={styles.infoRow}><Text style={styles.labelSmall}>LOCALITY</Text><Text style={styles.infoValue}>{selectedDonee.locality || 'N/A'}</Text></View>
+              <View style={styles.infoRow}><Text style={styles.labelSmall}>PINCODE</Text><Text style={styles.infoValue}>{selectedDonee.postalCode}</Text></View>
             </View>
           </View>
 
           <View style={styles.formBox}>
-            <Text style={styles.formTitle}>Assignment Details</Text>
+            <Text style={styles.formSectionTitle}>Assignment Setup</Text>
 
-            <Text style={styles.label}>SELECT AVAILABLE SURVEYOR</Text>
-            <TouchableOpacity style={styles.normalDropdown} onPress={() => {
+            <Text style={styles.inputLabel}>CHOOSE SURVEYOR</Text>
+            <TouchableOpacity style={styles.dropdownInput} onPress={() => {
               setFilteredSurveyors(surveyors);
               setShowSurveyorModal(true);
             }}>
-              <Text style={{color: selectedSurveyor ? '#000' : '#888', flex: 1}}>
+              <Text style={{color: selectedSurveyor ? '#000' : '#94A3B8', fontWeight: '600'}}>
                 {selectedSurveyor 
-                  ? `${selectedSurveyor.fullName} (${selectedSurveyor.phone})` 
-                  : "Search available surveyors..."}
+                  ? `✅ ${selectedSurveyor.fullName}` 
+                  : "Select available personnel..."}
               </Text>
               <Text style={styles.arrow}>▼</Text>
             </TouchableOpacity>
 
-            <Text style={styles.label}>VISIT DATE</Text>
-            <TextInput style={styles.input} value={visitDate} onChangeText={setVisitDate} />
+            <Text style={styles.inputLabel}>VISIT DATE (YYYY-MM-DD)</Text>
+            <TextInput style={styles.modernInput} value={visitDate} onChangeText={setVisitDate} placeholder="2026-03-10" />
 
-            <Text style={styles.label}>URGENCY</Text>
+            <Text style={styles.inputLabel}>URGENCY LEVEL</Text>
             <View style={styles.priorityGroup}>
               {['NORMAL', 'HIGH', 'URGENT'].map(p => (
-                <TouchableOpacity key={p} style={[styles.pButton, priority === p && styles.pActive]} onPress={() => setPriority(p)}>
-                  <Text style={{color: priority === p ? '#FFF' : '#16476A', fontSize: 12, fontWeight: 'bold'}}>{p}</Text>
+                <TouchableOpacity 
+                    key={p} 
+                    style={[styles.pButton, priority === p && styles.pActive]} 
+                    onPress={() => setPriority(p)}
+                >
+                  <Text style={[styles.pButtonText, priority === p && {color: '#FFF'}]}>{p}</Text>
                 </TouchableOpacity>
               ))}
             </View>
 
-            <TouchableOpacity style={styles.assignBtn} onPress={handleAssignment} disabled={assigning}>
-              {assigning ? <ActivityIndicator color="#FFF" /> : <Text style={styles.assignBtnText}>ASSIGN NOW</Text>}
+            <TouchableOpacity style={styles.primaryBtn} onPress={handleAssignment} disabled={assigning}>
+              {assigning ? <ActivityIndicator color="#FFF" /> : <Text style={styles.primaryBtnText}>CONFIRM ASSIGNMENT</Text>}
             </TouchableOpacity>
           </View>
+          <View style={{height: 40}} />
         </ScrollView>
 
+        {/* SURVEYOR SELECTION MODAL */}
         <Modal visible={showSurveyorModal} animationType="slide" transparent={true}>
           <View style={styles.modalOverlay}>
-            <View style={styles.simpleListContainer}>
-              <Text style={styles.modalHeader}>Available Surveyors</Text>
-              <TextInput 
-                style={styles.searchInput}
-                placeholder="🔍 Search name..."
-                value={searchQuery}
-                onChangeText={handleSearch}
-                autoFocus={true}
-              />
+            <View style={styles.modalSheet}>
+              <View style={styles.modalHandle} />
+              <Text style={styles.modalHeaderTitle}>Available Surveyors</Text>
+              <View style={styles.modalSearchWrapper}>
+                <TextInput 
+                    style={styles.modalSearchInput}
+                    placeholder="Search by name..."
+                    placeholderTextColor="#94A3B8"
+                    value={searchQuery}
+                    onChangeText={handleSearch}
+                />
+              </View>
               <FlatList 
                 data={filteredSurveyors}
                 keyExtractor={(item) => item.userId.toString()}
                 renderItem={({item}) => (
                   <TouchableOpacity 
-                    style={styles.listItem} 
+                    style={styles.modalListItem} 
                     onPress={() => { setSelectedSurveyor(item); setShowSurveyorModal(false); setSearchQuery(''); }}
                   >
-                    {/* Fixed Display Field */}
-                    <Text style={styles.listName}>{item.fullName}</Text>
-                    <Text style={styles.listPhone}>📞 {item.phone || 'N/A'}</Text>
+                    <View>
+                        <Text style={styles.listNameText}>{item.fullName}</Text>
+                        <Text style={styles.listPhoneText}>ID: {item.surveyorId} • 📞 {item.phone}</Text>
+                    </View>
+                    <Text style={{fontSize: 18}}>➕</Text>
                   </TouchableOpacity>
                 )}
-                ListEmptyComponent={<Text style={{textAlign: 'center', marginTop: 20, color: '#999'}}>No surveyors found.</Text>}
+                ListEmptyComponent={<Text style={styles.emptySearchTxt}>No surveyors found.</Text>}
               />
-              <TouchableOpacity onPress={() => setShowSurveyorModal(false)} style={styles.cancelBtn}>
-                <Text style={{color: '#EF4444', fontWeight: 'bold'}}>Close</Text>
+              <TouchableOpacity onPress={() => setShowSurveyorModal(false)} style={styles.modalCloseBtn}>
+                <Text style={styles.modalCloseBtnTxt}>CANCEL</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -188,59 +202,113 @@ export default function AdminAssignmentScreen({ route }: any) {
     );
   }
 
+  // --- MAIN SCREEN: REQUEST LIST ---
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}><Text style={styles.headerText}>Verification Requests</Text></View>
-      <FlatList 
-        data={donees}
-        keyExtractor={(item) => item.doneeId.toString()}
-        renderItem={({item}) => (
-          <TouchableOpacity style={styles.card} onPress={() => setSelectedDonee(item)}>
-            <Text style={styles.cardName}>{item.fullName}</Text>
-            <Text style={styles.cardInfo}>{item.currentCity} | {item.phone}</Text>
-          </TouchableOpacity>
-        )}
-        contentContainerStyle={{padding: 15}}
-      />
+      <StatusBar barStyle="light-content" backgroundColor="#000" />
+      <View style={styles.mainHeader}>
+          <Text style={styles.mainHeaderTitle}>Verification Requests</Text>
+          <Text style={styles.mainHeaderSub}>Assign surveyors to new applicants</Text>
+      </View>
+
+      {loading && donees.length === 0 ? (
+          <View style={{flex: 1, justifyContent: 'center'}}><ActivityIndicator size="large" color="#000" /></View>
+      ) : (
+        <FlatList 
+            data={donees}
+            keyExtractor={(item) => item.doneeId.toString()}
+            renderItem={({item}) => (
+            <TouchableOpacity style={styles.mainCard} onPress={() => setSelectedDonee(item)}>
+                <View style={styles.cardAvatar}>
+                    <Text style={styles.cardAvatarTxt}>{(item.fullName || 'D')[0]}</Text>
+                </View>
+                <View style={{flex: 1, marginLeft: 15}}>
+                    <Text style={styles.cardNameTxt}>{item.fullName}</Text>
+                    <Text style={styles.cardLocTxt}>{item.currentCity} • {item.phone}</Text>
+                </View>
+                <Text style={{fontSize: 20, color: '#CBD5E1'}}>›</Text>
+            </TouchableOpacity>
+            )}
+            contentContainerStyle={{padding: 20}}
+            ListEmptyComponent={
+                <View style={styles.emptyBox}>
+                    <Text style={{fontSize: 50, marginBottom: 10}}>✅</Text>
+                    <Text style={styles.emptyBoxTitle}>All Caught Up!</Text>
+                    <Text style={styles.emptyBoxSub}>No pending verification requests found.</Text>
+                </View>
+            }
+        />
+      )}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc' },
-  header: { padding: 20, backgroundColor: '#16476A' },
-  headerText: { color: '#FFF', fontSize: 18, fontWeight: 'bold' },
-  card: { backgroundColor: '#FFF', padding: 18, borderRadius: 12, marginBottom: 12, elevation: 2 },
-  cardName: { fontSize: 16, fontWeight: 'bold', color: '#1E293B' },
-  cardInfo: { fontSize: 13, color: '#64748B', marginTop: 4 },
-  detailContainer: { flex: 1, padding: 15 },
-  backBtn: { marginBottom: 15 },
-  backBtnTxt: { color: '#16476A', fontWeight: 'bold' },
-  profileBox: { backgroundColor: '#FFF', padding: 20, borderRadius: 15, elevation: 3 },
-  title: { fontSize: 24, fontWeight: 'bold', color: '#1E293B' },
-  phoneSub: { fontSize: 16, color: '#16476A', marginTop: 4, fontWeight: '600' },
-  divider: { height: 1, backgroundColor: '#F1F5F9', marginVertical: 15 },
-  infoGrid: { gap: 10 },
-  infoRow: { flexDirection: 'row', alignItems: 'center' },
-  labelSmall: { fontWeight: 'bold', width: 95, fontSize: 11, color: '#94A3B8' },
-  infoValue: { fontSize: 14, color: '#334155', fontWeight: '500' },
-  formBox: { marginTop: 20, backgroundColor: '#FFF', padding: 20, borderRadius: 15, elevation: 2 },
-  formTitle: { fontSize: 17, fontWeight: 'bold', color: '#16476A' },
-  label: { fontSize: 10, fontWeight: 'bold', marginTop: 15, color: '#64748B' },
-  normalDropdown: { flexDirection: 'row', justifyContent: 'space-between', padding: 14, borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 10, marginTop: 6, backgroundColor: '#F8FAFC' },
-  arrow: { fontSize: 12, color: '#16476A' },
-  input: { borderWidth: 1, borderColor: '#E2E8F0', padding: 12, borderRadius: 10, marginTop: 6, color: '#000', backgroundColor: '#F8FAFC' },
-  priorityGroup: { flexDirection: 'row', gap: 8, marginTop: 10 },
-  pButton: { flex: 1, padding: 12, borderWidth: 1, borderColor: '#16476A', borderRadius: 8, alignItems: 'center' },
-  pActive: { backgroundColor: '#16476A' },
-  assignBtn: { backgroundColor: '#16476A', padding: 16, borderRadius: 12, marginTop: 30, alignItems: 'center' },
-  assignBtnText: { color: '#FFF', fontWeight: 'bold' },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' },
-  simpleListContainer: { backgroundColor: '#FFF', width: '92%', borderRadius: 20, padding: 20, maxHeight: '80%' },
-  modalHeader: { fontSize: 18, fontWeight: 'bold', marginBottom: 15, textAlign: 'center' },
-  searchInput: { backgroundColor: '#F1F5F9', padding: 14, borderRadius: 12, marginBottom: 15, borderWidth: 1, borderColor: '#E2E8F0' },
-  listItem: { paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
-  listName: { fontSize: 16, fontWeight: '600' },
-  listPhone: { fontSize: 13, color: '#059669', fontWeight: 'bold' },
-  cancelBtn: { marginTop: 20, alignItems: 'center' }
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
+  
+  // Header Styles
+  mainHeader: { backgroundColor: '#000', padding: 25, borderBottomLeftRadius: 35, borderBottomRightRadius: 35 },
+  mainHeaderTitle: { color: '#FFF', fontSize: 26, fontWeight: '900', letterSpacing: -0.5 },
+  mainHeaderSub: { color: '#94A3B8', fontSize: 13, marginTop: 5, fontWeight: '600' },
+  
+  detailHeader: { flexDirection: 'row', alignItems: 'center', padding: 20, backgroundColor: '#FFF' },
+  backCircle: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#F1F5F9', justifyContent: 'center', alignItems: 'center' },
+  detailHeaderTitle: { marginLeft: 15, fontSize: 18, fontWeight: '800', color: '#000' },
+
+  // List Screen Styles
+  mainCard: { 
+    backgroundColor: '#FFF', padding: 16, borderRadius: 24, marginBottom: 15, 
+    flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#F1F5F9',
+    elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10 
+  },
+  cardAvatar: { width: 50, height: 50, borderRadius: 15, backgroundColor: '#F8FAFC', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#F1F5F9' },
+  cardAvatarTxt: { fontSize: 20, fontWeight: '900' },
+  cardNameTxt: { fontSize: 17, fontWeight: '800', color: '#0F172A' },
+  cardLocTxt: { fontSize: 13, color: '#64748B', marginTop: 2, fontWeight: '500' },
+
+  // Detail Screen Styles
+  detailContainer: { flex: 1, paddingHorizontal: 20 },
+  profileBox: { alignItems: 'center', padding: 25, backgroundColor: '#F8FAFC', borderRadius: 30, borderWidth: 1, borderColor: '#F1F5F9' },
+  avatarLarge: { width: 80, height: 80, borderRadius: 25, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center', marginBottom: 15 },
+  avatarLargeText: { color: '#FFF', fontSize: 32, fontWeight: '900' },
+  titleText: { fontSize: 22, fontWeight: '900', color: '#0F172A' },
+  phoneSubText: { fontSize: 14, color: '#64748B', marginTop: 5, fontWeight: '700' },
+  divider: { width: '100%', height: 1, backgroundColor: '#E2E8F0', marginVertical: 20 },
+  infoGrid: { width: '100%', gap: 12 },
+  infoRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  labelSmall: { fontWeight: '800', fontSize: 11, color: '#94A3B8' },
+  infoValue: { fontSize: 14, color: '#0F172A', fontWeight: '700' },
+
+  // Form Styles
+  formBox: { marginTop: 25 },
+  formSectionTitle: { fontSize: 18, fontWeight: '900', color: '#000', marginBottom: 5 },
+  inputLabel: { fontSize: 11, fontWeight: '900', color: '#94A3B8', marginTop: 20, marginBottom: 8 },
+  dropdownInput: { flexDirection: 'row', justifyContent: 'space-between', padding: 16, borderRadius: 15, backgroundColor: '#F1F5F9', alignItems: 'center' },
+  modernInput: { padding: 16, borderRadius: 15, backgroundColor: '#F1F5F9', color: '#000', fontWeight: '700', fontSize: 14 },
+  arrow: { fontSize: 12, color: '#000' },
+  priorityGroup: { flexDirection: 'row', gap: 10 },
+  pButton: { flex: 1, padding: 14, borderRadius: 15, borderWidth: 2, borderColor: '#F1F5F9', alignItems: 'center' },
+  pActive: { backgroundColor: '#000', borderColor: '#000' },
+  pButtonText: { fontSize: 11, fontWeight: '900', color: '#64748B' },
+  primaryBtn: { backgroundColor: '#000', padding: 18, borderRadius: 18, marginTop: 35, alignItems: 'center' },
+  primaryBtnText: { color: '#FFF', fontWeight: '900', letterSpacing: 1 },
+
+  // Modal Styles
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
+  modalSheet: { backgroundColor: '#FFF', borderTopLeftRadius: 35, borderTopRightRadius: 35, padding: 25, maxHeight: '85%' },
+  modalHandle: { width: 40, height: 5, backgroundColor: '#E2E8F0', alignSelf: 'center', borderRadius: 10, marginBottom: 20 },
+  modalHeaderTitle: { fontSize: 20, fontWeight: '900', marginBottom: 20, textAlign: 'center' },
+  modalSearchWrapper: { backgroundColor: '#F1F5F9', borderRadius: 15, paddingHorizontal: 15, marginBottom: 15 },
+  modalSearchInput: { padding: 14, fontWeight: '700' },
+  modalListItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 18, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
+  listNameText: { fontSize: 16, fontWeight: '800', color: '#0F172A' },
+  listPhoneText: { fontSize: 12, color: '#64748B', marginTop: 2, fontWeight: '600' },
+  modalCloseBtn: { marginTop: 20, padding: 18, alignItems: 'center', backgroundColor: '#F1F5F9', borderRadius: 15 },
+  modalCloseBtnTxt: { color: '#EF4444', fontWeight: '900', fontSize: 13 },
+
+  // Empty State
+  emptyBox: { alignItems: 'center', marginTop: 100 },
+  emptyBoxTitle: { fontSize: 22, fontWeight: '900', color: '#0F172A', marginBottom: 8 },
+  emptyBoxSub: { fontSize: 14, color: '#94A3B8', textAlign: 'center', paddingHorizontal: 50, fontWeight: '600' },
+  emptySearchTxt: { textAlign: 'center', marginVertical: 30, color: '#94A3B8', fontWeight: '700' }
 });

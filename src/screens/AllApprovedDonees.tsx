@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { 
   View, Text, StyleSheet, FlatList, SafeAreaView, TextInput,
-  ActivityIndicator, TouchableOpacity, StatusBar, ScrollView 
+  ActivityIndicator, TouchableOpacity, StatusBar, ScrollView, Dimensions 
 } from 'react-native';
 import axios from 'axios';
+
+const { width } = Dimensions.get('window');
 
 // --- Interfaces ---
 interface Need {
@@ -78,14 +80,13 @@ export default function AllApprovedDonees({ route, navigation }: any) {
   });
 
   const renderAvatar = (name: string, size: number) => (
-    <View style={[styles.avatarBase, { width: size, height: size, borderRadius: size/2 }]}>
-      <Text style={{ color: '#16476A', fontWeight: 'bold', fontSize: size * 0.4 }}>
+    <View style={[styles.avatarBase, { width: size, height: size, borderRadius: 12 }]}>
+      <Text style={{ color: '#000', fontWeight: '800', fontSize: size * 0.4 }}>
         {name ? name[0].toUpperCase() : 'U'}
       </Text>
     </View>
   );
 
-  // --- DETAIL VIEW (Ab scope ke andar hai) ---
   const renderDetailView = () => {
     if (!selectedDonee) return null;
     const adults = selectedDonee.familyMembers?.filter(m => m.age >= 18).length || 0;
@@ -96,51 +97,55 @@ export default function AllApprovedDonees({ route, navigation }: any) {
         <ScrollView showsVerticalScrollIndicator={false}>
           <View style={styles.detailHeader}>
              {renderAvatar(selectedDonee.fullName, 65)}
-             <Text style={styles.detailName}>
-               {selectedDonee.fullName} 
-               <View style={styles.mBadge}></View>
-             </Text>
+             <View style={{marginLeft: 15}}>
+                <Text style={styles.detailName}>{selectedDonee.fullName}</Text>
+                <Text style={styles.subInfoText}>Gender: {selectedDonee.gender} • 39 Years</Text>
+             </View>
           </View>
+          
           <View style={styles.addressSectionDetail}>
-            <Text style={{fontSize: 22}}>📍</Text>
+            <Text style={{fontSize: 20}}>📍</Text>
             <Text style={styles.fullAddressDetailText}>{selectedDonee.address?.fullAddress}</Text>
           </View>
-          <Text style={styles.subInfoText}>Age: 39 Years      Gender: {selectedDonee.gender}</Text>
+
           <View style={styles.divider} />
-          <Text style={styles.sectionTitle}>Family Details</Text>
-          <Text style={styles.familyLine}>Adult: {adults}       Children: {children}</Text>
-          <Text style={styles.familyLine}>Total family Members: {selectedDonee.familyMembers?.length}</Text>
+          <Text style={styles.sectionTitle}>Family Composition</Text>
+          <View style={styles.cardInfoRow}>
+             <View style={styles.infoBox}><Text style={styles.infoLabel}>Adults</Text><Text style={styles.infoVal}>{adults}</Text></View>
+             <View style={styles.infoBox}><Text style={styles.infoLabel}>Children</Text><Text style={styles.infoVal}>{children}</Text></View>
+             <View style={styles.infoBox}><Text style={styles.infoLabel}>Total</Text><Text style={styles.infoVal}>{selectedDonee.familyMembers?.length}</Text></View>
+          </View>
+
           <View style={styles.divider} />
-          <Text style={styles.sectionTitle}>Donate</Text>
+          <Text style={styles.sectionTitle}>Select Needs to Donate</Text>
           <View style={styles.donateIconRow}>
              {selectedDonee.needs.map((need) => {
                 const isSelected = selectedNeedIds.includes(need.id);
                 return (
                   <TouchableOpacity key={need.id} style={styles.donateIconItem} onPress={() => toggleNeedSelection(need.id)}>
-                    <View style={[styles.iconCircle, isSelected && { backgroundColor: '#16476A', borderColor: '#16476A' }]}>
+                    <View style={[styles.iconCircle, isSelected && { backgroundColor: '#000', borderColor: '#000' }]}>
                       <Text style={{fontSize: 24}}>{getIcon(need.category)}</Text>
                     </View>
-                    <Text style={[styles.donateLabel, isSelected && { fontWeight: 'bold', color: '#16476A' }]}>{need.category}</Text>
+                    <Text style={[styles.donateLabel, isSelected && { fontWeight: '800', color: '#000' }]}>{need.category}</Text>
                   </TouchableOpacity>
                 );
              })}
           </View>
-          <TouchableOpacity style={styles.continueBtn}><Text style={styles.continueText}>Continue ({selectedNeedIds.length})</Text></TouchableOpacity>
+          <TouchableOpacity style={styles.blackBtn}><Text style={styles.continueText}>Continue ({selectedNeedIds.length})</Text></TouchableOpacity>
         </ScrollView>
       </View>
     );
   };
 
-  // --- LIST VIEW ---
   const renderListView = () => (
     <View style={styles.whiteContainer}>
       <View style={styles.searchRow}>
         <View style={styles.searchBar}>
-          <Text style={{fontSize: 18}}>🔍</Text>
+          <Text style={{fontSize: 16}}>🔍</Text>
           <TextInput placeholder="Search name or city..." style={styles.searchInput} placeholderTextColor="#94A3B8" value={search} onChangeText={setSearch} />
         </View>
-        <TouchableOpacity style={[styles.filterBtn, showFilter && {backgroundColor: '#16476A'}]} onPress={() => setShowFilter(!showFilter)}>
-          <Text style={{fontSize: 20, color: showFilter ? '#FFF' : '#000'}}>⏳</Text>
+        <TouchableOpacity style={[styles.filterBtn, showFilter && {backgroundColor: '#000'}]} onPress={() => setShowFilter(!showFilter)}>
+          <Text style={{fontSize: 18, color: showFilter ? '#FFF' : '#000'}}>⏳</Text>
         </TouchableOpacity>
       </View>
 
@@ -161,7 +166,7 @@ export default function AllApprovedDonees({ route, navigation }: any) {
       )}
 
       {loading ? (
-        <ActivityIndicator color="#16476A" size="large" style={{marginTop: 50}} />
+        <ActivityIndicator color="#000" size="large" style={{marginTop: 50}} />
       ) : (
         <FlatList 
           data={filteredDonees}
@@ -172,12 +177,12 @@ export default function AllApprovedDonees({ route, navigation }: any) {
                 {renderAvatar(item.fullName, 55)}
                 <View style={styles.nameRow}>
                   <Text style={styles.nameText}>{item.fullName}</Text>
-                  <View style={styles.mBadge}></View>
+                  <View style={styles.mBadge}><Text style={styles.mText}>✓</Text></View>
                 </View>
                 <Text style={styles.arrow}>→</Text>
               </View>
               <View style={styles.addressRow}>
-                <Text style={{fontSize: 18}}>📍</Text>
+                <Text style={{fontSize: 16}}>📍</Text>
                 <Text style={styles.addressText} numberOfLines={2}>{item.address?.fullAddress || "No Address"}</Text>
               </View>
               <View style={styles.tagsRow}>
@@ -197,12 +202,12 @@ export default function AllApprovedDonees({ route, navigation }: any) {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <StatusBar barStyle="light-content" backgroundColor="#16476A" />
+      <StatusBar barStyle="light-content" backgroundColor="#000" />
       <View style={styles.blackHeader}>
-         <TouchableOpacity onPress={() => selectedDonee ? setSelectedDonee(null) : navigation.goBack()}>
-           <Text style={styles.backBtn}>←</Text>
-         </TouchableOpacity>
-         <Text style={styles.logoText}>40 NSES</Text>
+          <TouchableOpacity onPress={() => selectedDonee ? setSelectedDonee(null) : navigation.goBack()}>
+            <Text style={styles.backBtn}>←</Text>
+          </TouchableOpacity>
+          <Text style={styles.logoText}>Approved Donees</Text>
       </View>
       {selectedDonee ? renderDetailView() : renderListView()}
     </SafeAreaView>
@@ -210,45 +215,48 @@ export default function AllApprovedDonees({ route, navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#16476A' },
-  blackHeader: { height: 80, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20 },
-  backBtn: { color: '#FFF', fontSize: 30, marginRight: 70 },
-  logoText: { color: '#FFF', fontSize: 24, fontWeight: 'bold' },
+  safe: { flex: 1, backgroundColor: '#000' },
+  blackHeader: { height: 80, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 25 },
+  backBtn: { color: '#FFF', fontSize: 28, marginRight: 20 },
+  logoText: { color: '#FFF', fontSize: 22, fontWeight: '900', letterSpacing: -0.5 },
   whiteContainer: { flex: 1, backgroundColor: '#FFF', borderTopLeftRadius: 35, borderTopRightRadius: 35, padding: 25 },
-  avatarBase: { backgroundColor: '#E2E8F0', justifyContent: 'center', alignItems: 'center' },
-  searchRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 15, gap: 10 },
-  searchBar: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#F1F5F9', borderRadius: 30, paddingHorizontal: 15, height: 55 },
-  searchInput: { flex: 1, marginLeft: 10, fontSize: 16, color: '#000' },
-  filterBtn: { width: 55, height: 55, backgroundColor: '#F1F5F9', borderRadius: 30, justifyContent: 'center', alignItems: 'center' },
+  avatarBase: { backgroundColor: '#F1F5F9', justifyContent: 'center', alignItems: 'center' },
+  searchRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 20, gap: 12 },
+  searchBar: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#F8FAFC', borderRadius: 16, paddingHorizontal: 15, height: 55, borderWidth: 1, borderColor: '#F1F5F9' },
+  searchInput: { flex: 1, marginLeft: 10, fontSize: 15, color: '#000', fontWeight: '600' },
+  filterBtn: { width: 55, height: 55, backgroundColor: '#F8FAFC', borderRadius: 16, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#F1F5F9' },
   filterDrawer: { marginBottom: 20 },
-  chip: { flexDirection: 'row', backgroundColor: '#F1F5F9', paddingHorizontal: 15, paddingVertical: 8, borderRadius: 20, marginRight: 10, borderWidth: 1, borderColor: '#E2E8F0', alignItems: 'center' },
-  activeChip: { backgroundColor: '#16476A', borderColor: '#16476A' },
-  chipText: { color: '#64748B', fontWeight: '500' },
+  chip: { flexDirection: 'row', backgroundColor: '#F8FAFC', paddingHorizontal: 18, paddingVertical: 10, borderRadius: 12, marginRight: 10, borderWidth: 1, borderColor: '#F1F5F9', alignItems: 'center' },
+  activeChip: { backgroundColor: '#000', borderColor: '#000' },
+  chipText: { color: '#64748B', fontWeight: '700', fontSize: 13 },
   activeChipText: { color: '#FFF' },
-  card: { backgroundColor: '#FFF', borderRadius: 25, padding: 18, marginBottom: 15, elevation: 3 },
+  card: { backgroundColor: '#FFF', borderRadius: 24, padding: 20, marginBottom: 18, elevation: 4, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 10, borderWidth: 1, borderColor: '#F1F5F9' },
   cardTop: { flexDirection: 'row', alignItems: 'center' },
   nameRow: { flex: 1, flexDirection: 'row', alignItems: 'center', marginLeft: 15 },
-  nameText: { fontSize: 19, fontWeight: 'bold', color: '#1E293B' },
-  mBadge: { backgroundColor: '#E11D48', paddingHorizontal: 6, borderRadius: 4, marginLeft: 8 },
-  mText: { color: '#FFF', fontWeight: 'bold', fontSize: 12 },
-  arrow: { fontSize: 22, color: '#000' },
-  addressRow: { flexDirection: 'row', marginTop: 12, borderTopWidth: 1, borderTopColor: '#F1F5F9', paddingTop: 10 },
-  addressText: { flex: 1, fontSize: 14, color: '#64748B', marginLeft: 8 },
-  tagsRow: { flexDirection: 'row', marginTop: 15, gap: 15 },
-  tagItem: { flexDirection: 'row', alignItems: 'center' },
-  tagLabel: { marginLeft: 6, color: '#475569', fontWeight: '600', textTransform: 'capitalize' },
+  nameText: { fontSize: 19, fontWeight: '800', color: '#0F172A' },
+  mBadge: { backgroundColor: '#000', width: 18, height: 18, borderRadius: 9, justifyContent: 'center', alignItems: 'center', marginLeft: 8 },
+  mText: { color: '#FFF', fontWeight: 'bold', fontSize: 10 },
+  arrow: { fontSize: 20, color: '#0F172A', fontWeight: 'bold' },
+  addressRow: { flexDirection: 'row', marginTop: 15, borderTopWidth: 1, borderTopColor: '#F1F5F9', paddingTop: 12 },
+  addressText: { flex: 1, fontSize: 14, color: '#64748B', marginLeft: 8, fontWeight: '500', lineHeight: 20 },
+  tagsRow: { flexDirection: 'row', marginTop: 15, gap: 12, flexWrap: 'wrap' },
+  tagItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F8FAFC', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 },
+  tagLabel: { marginLeft: 5, color: '#0F172A', fontWeight: '700', fontSize: 11, textTransform: 'uppercase' },
   detailHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 25 },
-  detailName: { fontSize: 22, fontWeight: 'bold', marginLeft: 15, color: '#1E293B' },
-  addressSectionDetail: { flexDirection: 'row', marginBottom: 10 },
-  fullAddressDetailText: { flex: 1, marginLeft: 10, color: '#475569', fontSize: 15 },
-  subInfoText: { fontSize: 15, color: '#64748B', marginLeft: 32 },
-  divider: { height: 1, backgroundColor: '#F1F5F9', marginVertical: 20 },
-  sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#1E293B', marginBottom: 15 },
-  familyLine: { fontSize: 15, color: '#475569', marginBottom: 8 },
-  donateIconRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 20, marginTop: 10 },
-  donateIconItem: { alignItems: 'center', width: 75 },
-  iconCircle: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#FFF', elevation: 2, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#F1F5F9' },
-  donateLabel: { marginTop: 8, fontSize: 11, color: '#475569', textAlign: 'center', textTransform: 'capitalize' },
-  continueBtn: { backgroundColor: '#16476A', height: 60, borderRadius: 15, justifyContent: 'center', alignItems: 'center', marginTop: 50 },
-  continueText: { color: '#FFF', fontWeight: 'bold', fontSize: 18 }
+  detailName: { fontSize: 24, fontWeight: '900', color: '#0F172A' },
+  addressSectionDetail: { flexDirection: 'row', backgroundColor: '#F8FAFC', padding: 15, borderRadius: 16 },
+  fullAddressDetailText: { flex: 1, marginLeft: 10, color: '#475569', fontSize: 15, fontWeight: '500', lineHeight: 22 },
+  subInfoText: { fontSize: 14, color: '#64748B', fontWeight: '600', marginTop: 2 },
+  divider: { height: 1, backgroundColor: '#F1F5F9', marginVertical: 25 },
+  sectionTitle: { fontSize: 18, fontWeight: '800', color: '#0F172A', marginBottom: 15, letterSpacing: -0.5 },
+  cardInfoRow: { flexDirection: 'row', gap: 12 },
+  infoBox: { flex: 1, backgroundColor: '#F8FAFC', padding: 15, borderRadius: 16, alignItems: 'center', borderWidth: 1, borderColor: '#F1F5F9' },
+  infoLabel: { fontSize: 11, fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' },
+  infoVal: { fontSize: 20, fontWeight: '900', color: '#000', marginTop: 4 },
+  donateIconRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 15, marginTop: 5 },
+  donateIconItem: { alignItems: 'center', width: (width - 80) / 3 },
+  iconCircle: { width: 64, height: 64, borderRadius: 20, backgroundColor: '#F8FAFC', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#F1F5F9' },
+  donateLabel: { marginTop: 8, fontSize: 11, color: '#64748B', textAlign: 'center', textTransform: 'uppercase', fontWeight: '700' },
+  blackBtn: { backgroundColor: '#000', height: 60, borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginTop: 40, elevation: 8, shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 10 },
+  continueText: { color: '#FFF', fontWeight: '900', fontSize: 16, letterSpacing: 1 }
 });

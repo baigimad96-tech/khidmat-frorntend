@@ -59,7 +59,7 @@ const styles = StyleSheet.create({
   },
   lineFill: { 
     height: '100%', 
-    backgroundColor: '#16476A', // Dark Blue Fill
+    backgroundColor: '#000000', // Dark Blue Fill
     borderRadius: 2 
   },
   nodesRow: { 
@@ -87,13 +87,13 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
   },
   activeDot: { 
-    borderColor: '#16476A', 
+    borderColor: '#000000', 
     borderWidth: 3,
     backgroundColor: '#FFF'
   },
   doneDot: { 
-    backgroundColor: '#16476A', 
-    borderColor: '#16476A' 
+    backgroundColor: '#000000', 
+    borderColor: '#000000' 
   },
   num: { 
     fontSize: 14, 
@@ -101,7 +101,7 @@ const styles = StyleSheet.create({
     color: '#94A3B8' 
   },
   activeNum: { 
-    color: '#16476A' 
+    color: '#000000' 
   },
   check: { 
     color: '#FFF', 
@@ -116,7 +116,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5 
   },
   activeLabel: { 
-    color: '#16476A' 
+    color: '#000000' 
   },
   doneLabel: {
     color: '#64748B' // Slightly darker grey for completed labels

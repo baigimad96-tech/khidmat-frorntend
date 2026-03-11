@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { 
   View, Text, FlatList, TouchableOpacity, 
-  StyleSheet, ActivityIndicator, SafeAreaView, Alert 
+  StyleSheet, ActivityIndicator, SafeAreaView, Alert, StatusBar 
 } from 'react-native';
 import axios from 'axios';
 
@@ -21,7 +21,6 @@ export default function SurveyorTasksScreen({ route, navigation }: any) {
       setLoading(true);
       const token = user.accessToken;
       
-      // Step 1: Saare Surveyors ki list fetch karein
       const surveyorRes = await axios.get(`${BASE_URL}/api/admin/users/all-available-surveyor`, {
         headers: { 
           Authorization: `Bearer ${token}`,
@@ -29,10 +28,8 @@ export default function SurveyorTasksScreen({ route, navigation }: any) {
         }
       });
 
-      // Aapke JSON ke according data "surveyors" key ke andar hai
       const allSurveyors = surveyorRes.data.surveyors || [];
       
-      // Step 2: Login user ki email ya userId match karke "surveyorId" nikalna
       const currentSurveyor = allSurveyors.find((s: any) => 
         s.email?.toLowerCase() === user.user.email?.toLowerCase() || 
         s.userId === user.user.id
@@ -44,10 +41,8 @@ export default function SurveyorTasksScreen({ route, navigation }: any) {
         return;
       }
 
-      // Backend API ko "surveyorId" chahiye (e.g. 1, 3)
       const targetSurveyorId = currentSurveyor.surveyorId;
 
-      // Step 3: Assignments fetch karein specific surveyorId use karke
       const assignmentRes = await axios.get(
         `${BASE_URL}/api/v1/admin/assignments/surveyor/${targetSurveyorId}`, 
         {
@@ -58,7 +53,6 @@ export default function SurveyorTasksScreen({ route, navigation }: any) {
         }
       );
 
-      // Backend direct List return kar raha hai
       const taskData = Array.isArray(assignmentRes.data) ? assignmentRes.data : (assignmentRes.data.data || []);
       setTasks(taskData);
 
@@ -70,44 +64,74 @@ export default function SurveyorTasksScreen({ route, navigation }: any) {
     }
   };
 
-  const renderItem = ({ item }: any) => (
-    <TouchableOpacity 
-      style={styles.card} 
-      onPress={() => navigation.navigate('FillDoneeProfile', { user, assignmentId: item.assignmentId })}
-    >
-      <View style={{ flex: 1 }}>
-        <Text style={styles.name}>{item.doneeName || 'Unknown Donee'}</Text>
-        <Text style={styles.city}>📍 {item.doneeCity || 'City Not Set'}</Text>
-        <Text style={styles.date}>📅 {item.scheduledVisitDate || 'TBD'}</Text>
-      </View>
-      <View style={styles.statusBadge}>
-        <Text style={styles.badgeText}>{item.priority || 'PENDING'}</Text>
-      </View>
-    </TouchableOpacity>
-  );
+  const renderItem = ({ item }: any) => {
+    // Priority wise color logic (Same as Admin Assignment logic)
+    const isUrgent = item.priority === 'URGENT' || item.priority === 'HIGH';
+    
+    return (
+      <TouchableOpacity 
+        style={styles.card} 
+        onPress={() => navigation.navigate('FillDoneeProfile', { 
+          user, 
+          assignmentId: item.assignmentId, 
+          actualDoneeId: item.doneeId 
+        })}
+      >
+        <View style={styles.cardContent}>
+          <View style={styles.avatarSmall}>
+            <Text style={styles.avatarTxt}>{(item.doneeName || 'D')[0]}</Text>
+          </View>
+          
+          <View style={{ flex: 1, marginLeft: 15 }}>
+            <Text style={styles.name}>{item.doneeName || 'Unknown Donee'}</Text>
+            <Text style={styles.city}>📍 {item.doneeCity || 'City Not Set'}</Text>
+            <View style={styles.dateRow}>
+               <Text style={styles.date}>📅 Visit: {item.scheduledVisitDate || 'TBD'}</Text>
+            </View>
+          </View>
+
+          <View style={[styles.statusBadge, isUrgent && styles.urgentBadge]}>
+            <Text style={[styles.badgeText, isUrgent && styles.urgentBadgeText]}>
+                {item.priority || 'PENDING'}
+            </Text>
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#000" />
+      
       <View style={styles.headerContainer}>
         <Text style={styles.header}>My Tasks</Text>
         <Text style={styles.subHeader}>Welcome, {user.user.fullName || user.user.username}</Text>
       </View>
 
-      {loading ? (
+      {loading && tasks.length === 0 ? (
         <View style={styles.center}>
-          <ActivityIndicator size="large" color="#16476A" />
+          <ActivityIndicator size="large" color="#000" />
         </View>
       ) : (
         <FlatList
           data={tasks}
           keyExtractor={(item: any) => item.assignmentId.toString()}
           renderItem={renderItem}
+          onRefresh={fetchSurveyorAndAssignments}
+          refreshing={loading}
           ListEmptyComponent={
-            <View style={styles.center}>
-              <Text style={styles.emptyText}>No pending assignments found.</Text>
+            <View style={styles.emptyCenter}>
+              <Text style={{fontSize: 50, marginBottom: 15}}>📋</Text>
+              <Text style={styles.emptyTitle}>No Pending Tasks</Text>
+              <Text style={styles.emptyText}>You don't have any assignments scheduled right now.</Text>
             </View>
           }
-          contentContainerStyle={{ padding: 20 }}
+          contentContainerStyle={[
+            { padding: 20, paddingBottom: 40 },
+            tasks.length === 0 && { flex: 1, justifyContent: 'center' }
+          ]}
+          showsVerticalScrollIndicator={false}
         />
       )}
     </SafeAreaView>
@@ -115,27 +139,61 @@ export default function SurveyorTasksScreen({ route, navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC' },
-  headerContainer: { padding: 20, backgroundColor: '#FFF', borderBottomWidth: 1, borderBottomColor: '#E2E8F0' },
-  header: { fontSize: 26, fontWeight: 'bold', color: '#16476A' },
-  subHeader: { fontSize: 14, color: '#64748B', marginTop: 4 },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 50 },
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
+  headerContainer: { 
+    padding: 25, 
+    backgroundColor: '#000', 
+    borderBottomLeftRadius: 35, 
+    borderBottomRightRadius: 35,
+    marginBottom: 10
+  },
+  header: { fontSize: 26, fontWeight: '900', color: '#FFF', letterSpacing: -0.5 },
+  subHeader: { fontSize: 13, color: '#94A3B8', marginTop: 5, fontWeight: '600' },
+  
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  emptyCenter: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 40 },
+  emptyTitle: { fontSize: 20, fontWeight: '900', color: '#0F172A', marginBottom: 8 },
+  emptyText: { color: '#94A3B8', fontSize: 14, textAlign: 'center', fontWeight: '600', lineHeight: 20 },
+
   card: { 
     backgroundColor: '#FFF', 
-    padding: 18, 
-    borderRadius: 15, 
-    flexDirection: 'row', 
-    alignItems: 'center',
-    marginBottom: 15, 
+    borderRadius: 24, 
+    padding: 16, 
+    marginBottom: 16, 
+    borderWidth: 1, 
+    borderColor: '#F1F5F9',
     elevation: 3,
     shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 5
+    shadowOpacity: 0.05,
+    shadowRadius: 10
   },
-  name: { fontSize: 18, fontWeight: '700', color: '#1E293B' },
-  city: { color: '#64748B', marginTop: 5, fontSize: 14 },
-  date: { color: '#94A3B8', fontSize: 12, marginTop: 5 },
-  statusBadge: { backgroundColor: '#E0F2FE', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 20 },
-  badgeText: { color: '#16476A', fontWeight: 'bold', fontSize: 10, textTransform: 'uppercase' },
-  emptyText: { color: '#94A3B8', fontSize: 16 }
+  cardContent: { flexDirection: 'row', alignItems: 'center' },
+  avatarSmall: { 
+    width: 50, 
+    height: 50, 
+    borderRadius: 15, 
+    backgroundColor: '#F8FAFC', 
+    justifyContent: 'center', 
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#F1F5F9'
+  },
+  avatarTxt: { fontSize: 20, fontWeight: '900', color: '#000' },
+  
+  name: { fontSize: 17, fontWeight: '800', color: '#0F172A' },
+  city: { color: '#64748B', marginTop: 3, fontSize: 13, fontWeight: '500' },
+  dateRow: { marginTop: 6 },
+  date: { color: '#94A3B8', fontSize: 11, fontWeight: '700' },
+  
+  statusBadge: { 
+    backgroundColor: '#F1F5F9', 
+    paddingVertical: 6, 
+    paddingHorizontal: 10, 
+    borderRadius: 10,
+    alignSelf: 'flex-start'
+  },
+  badgeText: { color: '#64748B', fontWeight: '900', fontSize: 10, textTransform: 'uppercase' },
+  
+  urgentBadge: { backgroundColor: '#FEF2F2' },
+  urgentBadgeText: { color: '#EF4444' }
 });
