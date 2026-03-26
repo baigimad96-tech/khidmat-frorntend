@@ -31,7 +31,7 @@ export default function TabNavigator({ route }: any) {
         initialParams={{ user }}
         options={{ 
           tabBarLabel: userRole === 'ADMIN' ? 'Admin Hub' : 'Home',
-          tabBarIcon: ({ color }) => <Text style={{fontSize: 20, color}}>🏠</Text> 
+          tabBarIcon: ({ color }) => <Text style={{fontSize: 20, color}}> </Text> 
         }}
       />
       {/* Baki tabs same rahenge */}

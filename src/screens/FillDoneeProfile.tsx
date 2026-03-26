@@ -4,6 +4,11 @@ import { Picker } from '@react-native-picker/picker';
 import axios from 'axios';
 import { launchImageLibrary } from 'react-native-image-picker';
 
+// Primary Theme Colors
+const PRIMARY_GREEN = '#42b212';
+const LIGHT_GREEN_BG = '#f1fdf0';
+const BORDER_GREEN = '#dcfce7';
+
 // Enums Import
 import { 
   BANK_ACCOUNT_TYPES, HOUSING_STATUS, INCOME_RANGE, 
@@ -34,7 +39,7 @@ const StableSelect = memo(({ label, val, options, onChange }: any) => (
       <Picker
         selectedValue={val}
         onValueChange={(v) => onChange(v)}
-        dropdownIconColor="#16476A"
+        dropdownIconColor={PRIMARY_GREEN}
         mode="dropdown"
       >
         {options.map((opt: string) => (
@@ -73,9 +78,6 @@ export default function FillDoneeProfile({ route, navigation }: any) {
     }
   });
 
-  // FETCH DONEE ID FROM ALL-DONEES ENDPOINT
- // FETCH DONEE ID FROM ALL-DONEES ENDPOINT
-// FillDoneeProfile.tsx ke andar
 useEffect(() => {
   const fetchDoneeData = async () => {
     try {
@@ -84,22 +86,17 @@ useEffect(() => {
       });
 
       const list = res.data.donees || [];
-      
-      // LOGIC: Assignment 8 kis Donee ke liye hai? 
-      // Agar direct link nahi mil raha, toh Donee ke data mein search karein
       const found = list.find((d: any) => 
-        d.doneeId === assignmentId || // Agar assignmentId hi doneeId hai
-        d.userId === assignmentId     // Agar userId se match ho raha hai
+        d.doneeId === assignmentId || 
+        d.userId === assignmentId     
       );
 
       if (found) {
         setBackendDoneeId(found.doneeId); 
         console.log("✅ Match Found! Using Donee ID:", found.doneeId);
       } else {
-        // AGAR KUCH NA MILE (Testing ke liye logic)
-        // Aapne kaha latest DB mein 7 hai, toh hum temporary fallback de sakte hain
         console.warn("No match for 8, checking latest...");
-        const latestDonee = list[list.length - 1]; // Sabse aakhri donee (e.g., ID 7)
+        const latestDonee = list[list.length - 1]; 
         if(latestDonee) {
             setBackendDoneeId(latestDonee.doneeId);
         }
@@ -125,13 +122,11 @@ useEffect(() => {
 
   const addArr = (sec: string, obj: any) => setForm((p: any) => ({ ...p, [sec]: [...p[sec], obj] }));
 
-  // IMAGE PICKER & UPLOAD LOGIC (FIXED FOR BACKEND DTO)
 const pickAndUpload = async (docType: string) => {
-  // 1. ID Mapping Logic: Agar 8 hai toh 7 use karein (Aapke DB ke logic ke hisaab se)
   let finalId = backendDoneeId;
   if (!finalId) {
     if (assignmentId === 8 || assignmentId === "8") {
-      finalId = 7; // Override for ID mismatch
+      finalId = 7; 
     } else {
       Alert.alert("Syncing", "Donee data load ho raha hai, please wait...");
       return;
@@ -139,21 +134,14 @@ const pickAndUpload = async (docType: string) => {
   }
 
   const result = await launchImageLibrary({ mediaType: 'photo', quality: 0.5 });
-
-  // 2. Safety Check (Isse TypeScript error solve hoga)
   if (result.didCancel || !result.assets || result.assets.length === 0) return;
-
   const file = result.assets[0];
-
-  // Yeh line 'file.uri is possibly undefined' error ko fix karti hai
   if (!file.uri) {
     Alert.alert("Error", "Image path nahi mila.");
     return;
   }
 
   const formData = new FormData();
-  
-  // 3. File Setup (Ab TS ko pata hai uri confirm hai)
   formData.append('file', {
     uri: Platform.OS === 'android' ? file.uri : file.uri.replace('file://', ''),
     name: file.fileName || `${docType}.jpg`,
@@ -168,7 +156,6 @@ const pickAndUpload = async (docType: string) => {
   setUploading(true);
 
   try {
-    // Note: Upload ke liye POST method hi chalega
     const response = await axios.post(
       'https://perchable-freewheeling-faye.ngrok-free.dev/api/v1/donee/documents/upload', 
       formData, 
@@ -185,12 +172,12 @@ const pickAndUpload = async (docType: string) => {
       Alert.alert("Success ✅", `${docType.replace(/_/g, ' ')} is uploaded!`);
     }
   } catch (e: any) {
-    console.log("Upload Error:", e.response?.data || e.message);
     Alert.alert("Error", e.response?.data?.message || "Upload fail ho gaya");
   } finally {
     setUploading(false);
   }
 };
+
   const submitFinal = async () => {
     setLoading(true);
     try {
@@ -248,8 +235,8 @@ const pickAndUpload = async (docType: string) => {
             <StableInput label="Disabled Count" val={form.householdInfo.disabledMembers} kb="numeric" isNum onChange={(v:any)=>updateSection('householdInfo','disabledMembers',v)} />
             <StableInput label="Orphaned Count" val={form.householdInfo.orphanedChildren} kb="numeric" isNum onChange={(v:any)=>updateSection('householdInfo','orphanedChildren',v)} />
             
-            <View style={styles.row}><Text style={styles.label}>Single Parent?</Text><Switch value={form.householdInfo.singleParentHousehold} onValueChange={(v)=>updateSection('householdInfo','singleParentHousehold',v)} /></View>
-            <View style={styles.row}><Text style={styles.label}>Widow/Widower?</Text><Switch value={form.householdInfo.widowOrWidower} onValueChange={(v)=>updateSection('householdInfo','widowOrWidower',v)} /></View>
+            <View style={styles.row}><Text style={styles.label}>Single Parent?</Text><Switch trackColor={{ false: "#E2E8F0", true: "#dcfce7" }} thumbColor={form.householdInfo.singleParentHousehold ? PRIMARY_GREEN : "#94A3B8"} value={form.householdInfo.singleParentHousehold} onValueChange={(v)=>updateSection('householdInfo','singleParentHousehold',v)} /></View>
+            <View style={styles.row}><Text style={styles.label}>Widow/Widower?</Text><Switch trackColor={{ false: "#E2E8F0", true: "#dcfce7" }} thumbColor={form.householdInfo.widowOrWidower ? PRIMARY_GREEN : "#94A3B8"} value={form.householdInfo.widowOrWidower} onValueChange={(v)=>updateSection('householdInfo','widowOrWidower',v)} /></View>
             
             <StableInput label="Monthly Income" val={form.householdInfo.monthlyHouseholdIncome} kb="numeric" isNum onChange={(v:any)=>updateSection('householdInfo','monthlyHouseholdIncome',v)} />
             <StableSelect label="Income Range" val={form.householdInfo.incomeRange} options={INCOME_RANGE} onChange={(v:any)=>updateSection('householdInfo','incomeRange',v)} />
@@ -258,7 +245,7 @@ const pickAndUpload = async (docType: string) => {
             <StableInput label="Secondary Income" val={form.householdInfo.secondaryIncomeSource} onChange={(v:any)=>updateSection('householdInfo','secondaryIncomeSource',v)} />
             <StableInput label="Total Expenses" val={form.householdInfo.totalMonthlyExpenses} kb="numeric" isNum onChange={(v:any)=>updateSection('householdInfo','totalMonthlyExpenses',v)} />
             
-            <View style={styles.row}><Text style={styles.label}>Has Debt?</Text><Switch value={form.householdInfo.hasOutstandingDebt} onValueChange={(v)=>updateSection('householdInfo','hasOutstandingDebt',v)} /></View>
+            <View style={styles.row}><Text style={styles.label}>Has Debt?</Text><Switch trackColor={{ false: "#E2E8F0", true: "#dcfce7" }} thumbColor={form.householdInfo.hasOutstandingDebt ? PRIMARY_GREEN : "#94A3B8"} value={form.householdInfo.hasOutstandingDebt} onValueChange={(v)=>updateSection('householdInfo','hasOutstandingDebt',v)} /></View>
             {form.householdInfo.hasOutstandingDebt && (
               <View style={styles.card}>
                 <StableInput label="Debt Amount" val={form.householdInfo.debtAmount} kb="numeric" isNum onChange={(v:any)=>updateSection('householdInfo','debtAmount',v)} />
@@ -270,10 +257,10 @@ const pickAndUpload = async (docType: string) => {
             <StableInput label="Monthly Rent" val={form.householdInfo.monthlyRent} kb="numeric" isNum onChange={(v:any)=>updateSection('householdInfo','monthlyRent',v)} />
             <StableInput label="Rooms" val={form.householdInfo.houseRooms} kb="numeric" isNum onChange={(v:any)=>updateSection('householdInfo','houseRooms',v)} />
             
-            <View style={styles.row}><Text style={styles.label}>Vehicle?</Text><Switch value={form.householdInfo.ownsVehicle} onValueChange={(v)=>updateSection('householdInfo','ownsVehicle',v)} /></View>
-            <View style={styles.row}><Text style={styles.label}>Land?</Text><Switch value={form.householdInfo.ownsLand} onValueChange={(v)=>updateSection('householdInfo','ownsLand',v)} /></View>
-            <View style={styles.row}><Text style={styles.label}>Savings?</Text><Switch value={form.householdInfo.hasSavings} onValueChange={(v)=>updateSection('householdInfo','hasSavings',v)} /></View>
-            <View style={styles.row}><Text style={styles.label}>Livestock?</Text><Switch value={form.householdInfo.hasLivestock} onValueChange={(v)=>updateSection('householdInfo','hasLivestock',v)} /></View>
+            <View style={styles.row}><Text style={styles.label}>Vehicle?</Text><Switch trackColor={{ false: "#E2E8F0", true: "#dcfce7" }} thumbColor={form.householdInfo.ownsVehicle ? PRIMARY_GREEN : "#94A3B8"} value={form.householdInfo.ownsVehicle} onValueChange={(v)=>updateSection('householdInfo','ownsVehicle',v)} /></View>
+            <View style={styles.row}><Text style={styles.label}>Land?</Text><Switch trackColor={{ false: "#E2E8F0", true: "#dcfce7" }} thumbColor={form.householdInfo.ownsLand ? PRIMARY_GREEN : "#94A3B8"} value={form.householdInfo.ownsLand} onValueChange={(v)=>updateSection('householdInfo','ownsLand',v)} /></View>
+            <View style={styles.row}><Text style={styles.label}>Savings?</Text><Switch trackColor={{ false: "#E2E8F0", true: "#dcfce7" }} thumbColor={form.householdInfo.hasSavings ? PRIMARY_GREEN : "#94A3B8"} value={form.householdInfo.hasSavings} onValueChange={(v)=>updateSection('householdInfo','hasSavings',v)} /></View>
+            <View style={styles.row}><Text style={styles.label}>Livestock?</Text><Switch trackColor={{ false: "#E2E8F0", true: "#dcfce7" }} thumbColor={form.householdInfo.hasLivestock ? PRIMARY_GREEN : "#94A3B8"} value={form.householdInfo.hasLivestock} onValueChange={(v)=>updateSection('householdInfo','hasLivestock',v)} /></View>
           </View>
         )}
 
@@ -287,13 +274,13 @@ const pickAndUpload = async (docType: string) => {
                 <StableSelect label="Gender" val={m.gender} options={GENDER_TYPES} onChange={(v:any)=>updateArr('familyMembers',i,'gender',v)} />
                 <StableInput label="DOB" val={m.dateOfBirth} onChange={(v:any)=>updateArr('familyMembers',i,'dateOfBirth',v)} />
                 <StableInput label="Age" val={m.age} kb="numeric" isNum onChange={(v:any)=>updateArr('familyMembers',i,'age',v)} />
-                <View style={styles.row}><Text style={styles.label}>Earning?</Text><Switch value={m.isEarningMember} onValueChange={(v)=>updateArr('familyMembers',i,'isEarningMember',v)} /></View>
+                <View style={styles.row}><Text style={styles.label}>Earning?</Text><Switch trackColor={{ false: "#E2E8F0", true: "#dcfce7" }} thumbColor={m.isEarningMember ? PRIMARY_GREEN : "#94A3B8"} value={m.isEarningMember} onValueChange={(v)=>updateArr('familyMembers',i,'isEarningMember',v)} /></View>
                 <StableInput label="Occupation" val={m.occupation} onChange={(v:any)=>updateArr('familyMembers',i,'occupation',v)} />
                 <StableInput label="Monthly Income" val={m.monthlyIncome} kb="numeric" isNum onChange={(v:any)=>updateArr('familyMembers',i,'monthlyIncome',v)} />
-                <View style={styles.row}><Text style={styles.label}>Dependent?</Text><Switch value={m.isDependent} onValueChange={(v)=>updateArr('familyMembers',i,'isDependent',v)} /></View>
-                <View style={styles.row}><Text style={styles.label}>Disabled?</Text><Switch value={m.isDisabled} onValueChange={(v)=>updateArr('familyMembers',i,'isDisabled',v)} /></View>
+                <View style={styles.row}><Text style={styles.label}>Dependent?</Text><Switch trackColor={{ false: "#E2E8F0", true: "#dcfce7" }} thumbColor={m.isDependent ? PRIMARY_GREEN : "#94A3B8"} value={m.isDependent} onValueChange={(v)=>updateArr('familyMembers',i,'isDependent',v)} /></View>
+                <View style={styles.row}><Text style={styles.label}>Disabled?</Text><Switch trackColor={{ false: "#E2E8F0", true: "#dcfce7" }} thumbColor={m.isDisabled ? PRIMARY_GREEN : "#94A3B8"} value={m.isDisabled} onValueChange={(v)=>updateArr('familyMembers',i,'isDisabled',v)} /></View>
                 <StableSelect label="Education" val={m.educationLevel} options={EDUCATION_LEVELS} onChange={(v:any)=>updateArr('familyMembers',i,'educationLevel',v)} />
-                <View style={styles.row}><Text style={styles.label}>In School?</Text><Switch value={m.isInSchool} onValueChange={(v)=>updateArr('familyMembers',i,'isInSchool',v)} /></View>
+                <View style={styles.row}><Text style={styles.label}>In School?</Text><Switch trackColor={{ false: "#E2E8F0", true: "#dcfce7" }} thumbColor={m.isInSchool ? PRIMARY_GREEN : "#94A3B8"} value={m.isInSchool} onValueChange={(v)=>updateArr('familyMembers',i,'isInSchool',v)} /></View>
                 <StableInput label="School Name" val={m.schoolName} onChange={(v:any)=>updateArr('familyMembers',i,'schoolName',v)} />
                 <StableSelect label="Health Status" val={m.healthStatus} options={HEALTH_STATUS} onChange={(v:any)=>updateArr('familyMembers',i,'healthStatus',v)} />
               </View>
@@ -347,11 +334,11 @@ const pickAndUpload = async (docType: string) => {
             <StableInput label="Latitude" val={form.surveyorReport.visitGpsLatitude} kb="numeric" isNum onChange={(v:any)=>updateSection('surveyorReport','visitGpsLatitude',v)} />
             <StableInput label="Longitude" val={form.surveyorReport.visitGpsLongitude} kb="numeric" isNum onChange={(v:any)=>updateSection('surveyorReport','visitGpsLongitude',v)} />
             <StableInput label="Residence Condition" val={form.surveyorReport.residenceCondition} onChange={(v:any)=>updateSection('surveyorReport','residenceCondition',v)} />
-            <View style={styles.row}><Text style={styles.label}>Family Present?</Text><Switch value={form.surveyorReport.familyPresent} onValueChange={(v)=>updateSection('surveyorReport','familyPresent',v)} /></View>
+            <View style={styles.row}><Text style={styles.label}>Family Present?</Text><Switch trackColor={{ false: "#E2E8F0", true: "#dcfce7" }} thumbColor={form.surveyorReport.familyPresent ? PRIMARY_GREEN : "#94A3B8"} value={form.surveyorReport.familyPresent} onValueChange={(v)=>updateSection('surveyorReport','familyPresent',v)} /></View>
             <StableInput label="Verified Members" val={form.surveyorReport.familyMembersVerified} kb="numeric" isNum onChange={(v:any)=>updateSection('surveyorReport','familyMembersVerified',v)} />
-            <View style={styles.row}><Text style={styles.label}>Address Verified?</Text><Switch value={form.surveyorReport.addressVerified} onValueChange={(v)=>updateSection('surveyorReport','addressVerified',v)} /></View>
-            <View style={styles.row}><Text style={styles.label}>Utility Bill Verified?</Text><Switch value={form.surveyorReport.utilityBillVerified} onValueChange={(v)=>updateSection('surveyorReport','utilityBillVerified',v)} /></View>
-            <View style={styles.row}><Text style={styles.label}>Income Verified?</Text><Switch value={form.surveyorReport.incomeVerified} onValueChange={(v)=>updateSection('surveyorReport','incomeVerified',v)} /></View>
+            <View style={styles.row}><Text style={styles.label}>Address Verified?</Text><Switch trackColor={{ false: "#E2E8F0", true: "#dcfce7" }} thumbColor={form.surveyorReport.addressVerified ? PRIMARY_GREEN : "#94A3B8"} value={form.surveyorReport.addressVerified} onValueChange={(v)=>updateSection('surveyorReport','addressVerified',v)} /></View>
+            <View style={styles.row}><Text style={styles.label}>Utility Bill Verified?</Text><Switch trackColor={{ false: "#E2E8F0", true: "#dcfce7" }} thumbColor={form.surveyorReport.utilityBillVerified ? PRIMARY_GREEN : "#94A3B8"} value={form.surveyorReport.utilityBillVerified} onValueChange={(v)=>updateSection('surveyorReport','utilityBillVerified',v)} /></View>
+            <View style={styles.row}><Text style={styles.label}>Income Verified?</Text><Switch trackColor={{ false: "#E2E8F0", true: "#dcfce7" }} thumbColor={form.surveyorReport.incomeVerified ? PRIMARY_GREEN : "#94A3B8"} value={form.surveyorReport.incomeVerified} onValueChange={(v)=>updateSection('surveyorReport','incomeVerified',v)} /></View>
             <StableInput label="Neighbors Contacted" val={form.surveyorReport.neighborsContacted} kb="numeric" isNum onChange={(v:any)=>updateSection('surveyorReport','neighborsContacted',v)} />
             <StableInput label="Neighborhood Feedback" val={form.surveyorReport.neighborhoodFeedback} onChange={(v:any)=>updateSection('surveyorReport','neighborhoodFeedback',v)} />
             <StableInput label="Recommendation" val={form.surveyorReport.recommendation} onChange={(v:any)=>updateSection('surveyorReport','recommendation',v)} />
@@ -375,24 +362,24 @@ const pickAndUpload = async (docType: string) => {
                 return (
                   <TouchableOpacity 
                     key={item.value} 
-                    style={[styles.upRow, isUploaded && {borderColor: '#22C55E'}]} 
+                    style={[styles.upRow, isUploaded && {borderColor: PRIMARY_GREEN}]} 
                     onPress={() => pickAndUpload(item.value)}
                     disabled={uploading}
                   >
                     <View style={{flex:1}}>
                       <Text style={styles.docName}>{item.label}</Text>
-                      <Text style={{color: isUploaded ? '#22C55E' : '#64748B', fontSize: 11}}>
+                      <Text style={{color: isUploaded ? PRIMARY_GREEN : '#64748B', fontSize: 11}}>
                         {isUploaded ? '✓ Uploaded Successfully' : 'Tap to select & upload'}
                       </Text>
                     </View>
-                    <View style={[styles.upIcon, isUploaded && {backgroundColor: '#22C55E'}]}>
+                    <View style={[styles.upIcon, isUploaded && {backgroundColor: PRIMARY_GREEN}]}>
                       {uploading ? <ActivityIndicator size="small" color="#FFF" /> : <Text style={{color:'#FFF', fontWeight:'bold'}}>UP</Text>}
                     </View>
                   </TouchableOpacity>
                 );
               })}
             </View>
-            {uploading && <ActivityIndicator color="#16476A" style={{marginTop: 10}} />}
+            {uploading && <ActivityIndicator color={PRIMARY_GREEN} style={{marginTop: 10}} />}
           </View>
         )}
 
@@ -436,7 +423,7 @@ const styles = StyleSheet.create({
   },
   progressBarFill: { 
     height: 3, 
-    backgroundColor: '#16476A', 
+    backgroundColor: PRIMARY_GREEN, 
     borderRadius: 2 
   },
   stepCircleWrapper: { 
@@ -453,8 +440,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF'
   },
   activeCircle: { 
-    backgroundColor: '#16476A', 
-    borderColor: '#16476A' 
+    backgroundColor: PRIMARY_GREEN, 
+    borderColor: PRIMARY_GREEN 
   },
   inactiveCircle: { 
     backgroundColor: '#FFF', 
@@ -482,25 +469,24 @@ const styles = StyleSheet.create({
   },
   fLabel: { 
     fontSize: 14, 
-    color: '#64748B', 
+    color: PRIMARY_GREEN, // Labels changed to Green
     marginBottom: 8, 
-    fontWeight: '600' 
-    // Yahan uppercase hata diya hai taaki login form jaisa soft look aaye
+    fontWeight: '700' 
   },
   fInput: { 
-    backgroundColor: '#F8FAFC', 
+    backgroundColor: LIGHT_GREEN_BG, // Soft green input background
     padding: 16, 
     borderRadius: 12, 
     borderWidth: 1, 
-    borderColor: '#E2E8F0', 
+    borderColor: BORDER_GREEN, 
     color: '#1E293B',
     fontSize: 16
   },
   pickerCont: { 
-    backgroundColor: '#F8FAFC', 
+    backgroundColor: LIGHT_GREEN_BG, 
     borderRadius: 12, 
     borderWidth: 1, 
-    borderColor: '#E2E8F0', 
+    borderColor: BORDER_GREEN, 
     overflow: 'hidden' 
   },
   card: { 
@@ -509,8 +495,7 @@ const styles = StyleSheet.create({
     borderRadius: 16, 
     marginVertical: 12, 
     borderWidth: 1, 
-    borderColor: '#F1F5F9',
-    // Shadow jo login cards mein hoti hai
+    borderColor: BORDER_GREEN,
     elevation: 3,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -518,11 +503,11 @@ const styles = StyleSheet.create({
     shadowRadius: 8
   },
   tArea: { 
-    backgroundColor: '#F8FAFC', 
+    backgroundColor: LIGHT_GREEN_BG, 
     padding: 16, 
     borderRadius: 12, 
     borderWidth: 1, 
-    borderColor: '#E2E8F0', 
+    borderColor: BORDER_GREEN, 
     height: 100, 
     textAlignVertical: 'top',
     fontSize: 16
@@ -531,13 +516,13 @@ const styles = StyleSheet.create({
     padding: 16, 
     alignItems: 'center', 
     borderWidth: 1, 
-    borderColor: '#CBD5E1', 
+    borderColor: BORDER_GREEN, 
     borderRadius: 12, 
     marginVertical: 15, 
-    backgroundColor: '#F1F5F9' 
+    backgroundColor: LIGHT_GREEN_BG 
   },
   addText: { 
-    color: '#475569', 
+    color: PRIMARY_GREEN, 
     fontWeight: '700' 
   },
   navRow: { 
@@ -547,12 +532,12 @@ const styles = StyleSheet.create({
   },
   nBtn: { 
     flex: 2, 
-    backgroundColor: '#16476A', 
+    backgroundColor: PRIMARY_GREEN, 
     padding: 18, 
     borderRadius: 12, 
     alignItems: 'center',
     elevation: 4,
-    shadowColor: '#16476A',
+    shadowColor: PRIMARY_GREEN,
     shadowOpacity: 0.2,
     shadowRadius: 5
   },
@@ -563,7 +548,7 @@ const styles = StyleSheet.create({
     borderRadius: 12, 
     alignItems: 'center', 
     borderWidth: 1, 
-    borderColor: '#E2E8F0' 
+    borderColor: BORDER_GREEN 
   },
   bText: { 
     color: '#64748B', 
@@ -571,7 +556,7 @@ const styles = StyleSheet.create({
   },
   sBtn: { 
     flex: 2, 
-    backgroundColor: '#10B981', 
+    backgroundColor: PRIMARY_GREEN, 
     padding: 18, 
     borderRadius: 12, 
     alignItems: 'center',
@@ -595,11 +580,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between', 
     alignItems: 'center', 
     padding: 18, 
-    backgroundColor: '#F8FAFC', 
+    backgroundColor: LIGHT_GREEN_BG, 
     borderRadius: 12, 
     marginBottom: 12, 
     borderWidth: 1, 
-    borderColor: '#E2E8F0' 
+    borderColor: BORDER_GREEN 
   },
   docName: { 
     fontWeight: '700', 
@@ -607,11 +592,11 @@ const styles = StyleSheet.create({
     fontSize: 15 
   },
   upIcon: { 
-    backgroundColor: '#16476A', 
+    backgroundColor: PRIMARY_GREEN, 
     width: 40, 
     height: 40, 
     borderRadius: 10, 
     justifyContent: 'center', 
     alignItems: 'center' 
   }
-});
+});                           

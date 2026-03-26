@@ -8,7 +8,7 @@ import {
 import axios from 'axios';
 
 const { width } = Dimensions.get('window');
-const BASE_URL = 'https://taylor-unirritant-latina.ngrok-free.dev'; 
+const BASE_URL = 'https://perchable-freewheeling-faye.ngrok-free.dev'; 
 const PRIMARY_GREEN = '#42b212'; // Naya Green Color
 const LIGHT_GREY = '#F8FAFC';
 const TEXT_DARK = '#0F172A';
@@ -154,7 +154,7 @@ export default function LoginScreen({ navigation }: any) {
               {loading ? (
                 <ActivityIndicator color="#FFF" size="small" />
               ) : (
-                <Text style={styles.btnTextWhite}>{!isOtpSent ? "CONTINUE" : "VERIFY NOW"}</Text>
+                <Text style={styles.btnTextWhite}>{!isOtpSent ? "SEND OTP" : "VERIFY NOW"}</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -273,7 +273,7 @@ const styles = StyleSheet.create({
   greenBtn: { 
     backgroundColor: PRIMARY_GREEN, 
     height: 58, 
-    width: '100%', // Ye sabhi buttons ko choda rakhta hai
+    width: '70%', // Ye sabhi buttons ko choda rakhta hai
     borderRadius: 18, 
     justifyContent: 'center', 
     alignItems: 'center',

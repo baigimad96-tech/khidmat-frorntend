@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, Mod
 import axios from 'axios';
 
 const BASE_URL = 'https://perchable-freewheeling-faye.ngrok-free.dev';
+const PRIMARY_GREEN = '#42b212'; // ✅ Green Theme Color
 
 export default function MoreSettingsScreen({ route, navigation }: any) {
   const { user } = route.params || {};
@@ -33,6 +34,7 @@ export default function MoreSettingsScreen({ route, navigation }: any) {
       
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Settings</Text>
+        <View style={styles.headerUnderline} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
@@ -127,7 +129,7 @@ export default function MoreSettingsScreen({ route, navigation }: any) {
               </TouchableOpacity>
               
               <TouchableOpacity 
-                style={[styles.modalBtn, {backgroundColor: '#000'}]} 
+                style={[styles.modalBtn, {backgroundColor: '#EF4444'}]} // ✅ Logout Button is RED
                 onPress={handleLogout}
                 disabled={loading}
               >
@@ -148,16 +150,16 @@ const styles = StyleSheet.create({
     paddingTop: 20, 
     paddingBottom: 15, 
     backgroundColor: '#FFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9'
   },
   headerTitle: { fontSize: 28, fontWeight: '900', color: '#0F172A', letterSpacing: -0.5 },
+  headerUnderline: { width: 35, height: 4, backgroundColor: PRIMARY_GREEN, marginTop: 8, borderRadius: 2, marginLeft: 2 },
+  
   scroll: { padding: 25 },
   section: { marginBottom: 35 },
   sectionTitle: { 
     fontSize: 12, 
     fontWeight: '800', 
-    color: '#94A3B8', 
+    color: PRIMARY_GREEN, // ✅ Section titles in Green
     marginBottom: 15, 
     textTransform: 'uppercase', 
     letterSpacing: 1.5 
@@ -166,19 +168,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row', 
     justifyContent: 'space-between', 
     alignItems: 'center', 
-    backgroundColor: '#F8FAFC', 
+    backgroundColor: '#f1fdf0', // ✅ Light Green background for items
     paddingVertical: 20, 
     paddingHorizontal: 20, 
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#F1F5F9'
+    borderColor: '#dcfce7' // ✅ Greenish border
   },
   menuLabel: { fontSize: 16, fontWeight: '700', color: '#0F172A' },
   subLabel: { fontSize: 12, color: '#64748B', marginTop: 4, fontWeight: '500' },
-  arrow: { fontSize: 18, color: '#0F172A', fontWeight: 'bold' },
+  arrow: { fontSize: 18, color: PRIMARY_GREEN, fontWeight: 'bold' }, // ✅ Arrow in Green
   
   // Modal Styles
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.5)', justifyContent: 'center', alignItems: 'center' },
   modalContent: { width: '85%', backgroundColor: '#FFF', borderRadius: 30, padding: 30, alignItems: 'center' },
   logoutIconCircle: { width: 70, height: 70, borderRadius: 35, backgroundColor: '#FFF1F2', justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
   modalTitle: { fontSize: 22, fontWeight: '900', color: '#0F172A', marginBottom: 10 },

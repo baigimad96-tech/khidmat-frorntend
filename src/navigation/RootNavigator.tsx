@@ -12,8 +12,10 @@ import AdminAssignmentScreen from '../screens/AdminAssignmentScreen';
 import SurveyorTasksScreen from '../screens/SurveyorTasksScreen';
 import FillDoneeProfile from '../screens/FillDoneeProfile';
 import AllApprovedDonees from '../screens/AllApprovedDonees';
+import DoneeDetail from '../screens/DoneeDetail'; // <-- Naya import
 import DoneeApprovalScreen from '../screens/DoneeApprovalScreen';
 import DonorDashboard from '../screens/DonorDashboard';
+import DonationSummaryScreen from '../screens/DonationSummaryScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -30,11 +32,16 @@ export default function RootNavigator() {
       <Stack.Screen name="ProfileScreenDetail" component={ProfileScreen} />
       <Stack.Screen name="DoneeApproval" component={DoneeApprovalScreen} />
       <Stack.Screen name="DonorDashboard" component={DonorDashboard} />
-      {/* ADMIN & SURVEYOR FLOW */}
+      
+      {/* Donor Flow */}
+      <Stack.Screen name="AllApprovedDonees" component={AllApprovedDonees} />
+      <Stack.Screen name="DoneeDetail" component={DoneeDetail} /> 
+      <Stack.Screen name="DonationSummary" component={DonationSummaryScreen} />
+
+      {/* Admin & Surveyor Flow */}
       <Stack.Screen name="AdminAssignment" component={AdminAssignmentScreen} />
       <Stack.Screen name="SurveyorTasks" component={SurveyorTasksScreen} />
       <Stack.Screen name="FillDoneeProfile" component={FillDoneeProfile} />
-      <Stack.Screen name="AllApprovedDonees" component={AllApprovedDonees} />
     </Stack.Navigator>
   );
 }

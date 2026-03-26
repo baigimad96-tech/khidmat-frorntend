@@ -1,12 +1,69 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   View, Text, StyleSheet, FlatList, TouchableOpacity, 
-  SafeAreaView, ActivityIndicator, StatusBar, TextInput, Dimensions, Modal 
+  SafeAreaView, StatusBar, TextInput, Dimensions, Modal 
 } from 'react-native';
 import axios from 'axios';
 
-const { width, height } = Dimensions.get('window');
+const { height } = Dimensions.get('window');
 const BASE_URL = 'https://perchable-freewheeling-faye.ngrok-free.dev'; 
+const PRIMARY_GREEN = '#42b212';
+const TEXT_DARK = '#0F172A';
+const LIGHT_GREY = '#F8FAFC';
+
+// ✅ Component outside to prevent Hook errors
+const UserCard = React.memo(({ item, activeTab, onReject, onApprove, onToggleStatus }: any) => {
+  return (
+    <View style={styles.card}>
+      <View style={styles.cardHeader}>
+        <View style={styles.avatar}>
+          <Text style={styles.avatarText}>{(item?.firstName || 'U')[0].toUpperCase()}</Text>
+        </View>
+        <View style={styles.infoSection}>
+          <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
+            <Text style={styles.userName}>{item?.firstName} {item?.lastName}</Text>
+            {/* ✅ Added Role Tag Here */}
+            <View style={styles.roleTag}>
+               <Text style={styles.roleTagText}>{item?.role || 'User'}</Text>
+            </View>
+          </View>
+          <Text style={styles.userEmail}>{item?.email}</Text>
+          <Text style={styles.userPhone}>{item?.phone}</Text>
+        </View>
+      </View>
+
+      <View style={styles.cardFooter}>
+        <View style={[styles.pill, { backgroundColor: item?.active ? '#f1fdf0' : '#FEF2F2' }]}>
+          <Text style={[styles.pillText, { color: item?.active ? PRIMARY_GREEN : '#DC2626' }]}>
+            {item?.active ? '✓ Approved' : '✕ Restricted'}
+          </Text>
+        </View>
+
+        <View style={styles.actions}>
+          {activeTab === 'pending' ? (
+            <View style={styles.btnGroup}>
+              <TouchableOpacity style={styles.rejectBtn} onPress={() => onReject(item.userId)}>
+                <Text style={styles.rejectBtnText}>Reject</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.approveBtn} onPress={() => onApprove(item.userId)}>
+                <Text style={styles.approveBtnText}>Approve</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity 
+              style={[styles.toggleBtn, { backgroundColor: item?.active ? '#FEF2F2' : '#f1fdf0', borderColor: item?.active ? '#FEE2E2' : '#dcfce7' }]}
+              onPress={() => onToggleStatus(item.userId, !!item.active)}
+            >
+              <Text style={[styles.toggleBtnText, { color: item?.active ? '#B91C1C' : PRIMARY_GREEN }]}>
+                {item?.active ? 'Deactivate' : 'Activate'}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+    </View>
+  );
+});
 
 export default function UserManagementScreen({ route }: any) {
   const user = route?.params?.user || {}; 
@@ -25,14 +82,12 @@ export default function UserManagementScreen({ route }: any) {
     setModalVisible(true);
   };
 
-  const handleModalClose = () => setModalVisible(false);
-
-  const getHeaders = () => ({
+  const getHeaders = useCallback(() => ({
     headers: { 
       'Authorization': `Bearer ${user.accessToken}`,
       'ngrok-skip-browser-warning': 'true' 
     }
-  });
+  }), [user.accessToken]);
 
   const fetchUsers = useCallback(async () => {
     if (!user?.accessToken) return;
@@ -47,12 +102,12 @@ export default function UserManagementScreen({ route }: any) {
     } finally {
       setLoading(false);
     }
-  }, [activeTab, user?.accessToken]);
+  }, [activeTab, user.accessToken, getHeaders]);
 
   useEffect(() => {
     fetchUsers();
     setSearchQuery('');
-  }, [fetchUsers, activeTab]);
+  }, [fetchUsers]);
 
   const toggleSort = () => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
 
@@ -78,105 +133,39 @@ export default function UserManagementScreen({ route }: any) {
   const handleApprove = async (userId: any) => {
     try {
       await axios.post(`${BASE_URL}/api/admin/users/${userId}/approve`, { adminId: user.userId }, getHeaders());
-      showPopup("Success ✨", "User has been approved successfully.", false); 
+      showPopup("Success ✨", "User approved successfully."); 
       fetchUsers();
-    } catch (error) {
-      showPopup("Error", "Failed to approve user.", true); 
-    }
+    } catch (error) { showPopup("Error", "Failed to approve.", true); }
   };
 
   const handleReject = async (userId: any) => {
     try {
-      await axios.post(`${BASE_URL}/api/admin/users/${userId}/reject`, { reason: "Declined by admin" }, getHeaders());
-      showPopup("Rejected", "User request has been declined.", true);
+      await axios.post(`${BASE_URL}/api/admin/users/${userId}/reject`, { reason: "Declined" }, getHeaders());
+      showPopup("Rejected", "Request declined.", true);
       fetchUsers();
-    } catch (e) { 
-      showPopup("Error", "Action failed.", true); 
-    }
+    } catch (e) { showPopup("Error", "Action failed.", true); }
   };
 
   const toggleStatus = async (userId: any, currentActiveStatus: boolean) => {
     const action = currentActiveStatus ? 'deactivate' : 'activate';
     try {
       await axios.post(`${BASE_URL}/api/admin/users/${action}?userId=${userId}`, {}, getHeaders());
-      showPopup(
-        currentActiveStatus ? "Deactivated" : "Activated", 
-        `User is now ${action}d.`, 
-        currentActiveStatus 
-      );
+      showPopup(currentActiveStatus ? "Deactivated" : "Activated", `User account is now ${action}d.`, currentActiveStatus);
       fetchUsers();
-    } catch (error) {
-      showPopup("Error", "Unauthorized or request failed.", true);
-    }
+    } catch (error) { showPopup("Error", "Action failed.", true); }
   };
-
-  const renderUserItem = ({ item }: { item: any }) => (
-    <View style={styles.card}>
-      <View style={styles.cardHeader}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{(item?.firstName || 'U')[0].toUpperCase()}</Text>
-        </View>
-        <View style={styles.infoSection}>
-          <View style={styles.nameRow}>
-            <Text style={styles.userName} numberOfLines={1}>
-              {item?.firstName} {item?.lastName}
-            </Text>
-            <View style={styles.roleChip}>
-              <Text style={styles.roleText}>{item?.role || 'USER'}</Text>
-            </View>
-          </View>
-          <Text style={styles.userEmail}>{item?.email}</Text>
-          <Text style={styles.userPhone}>{item?.phone}</Text>
-        </View>
-        {activeTab === 'all' && (
-            <View style={[styles.statusIndicator, { backgroundColor: item?.active ? '#10B981' : '#EF4444' }]} />
-        )}
-      </View>
-
-      <View style={styles.cardFooter}>
-        <View style={[styles.pill, { backgroundColor: item?.active ? '#DCFCE7' : '#FEF2F2' }]}>
-          <Text style={[styles.pillText, { color: item?.active ? '#15803D' : '#DC2626' }]}>
-            {item?.active ? '✓ Active Account' : '✕ Deactivated'}
-          </Text>
-        </View>
-
-        <View style={styles.actions}>
-          {activeTab === 'pending' ? (
-            <View style={styles.btnGroup}>
-              <TouchableOpacity style={styles.rejectBtn} onPress={() => handleReject(item.userId)}>
-                <Text style={styles.rejectBtnText}>Reject</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.approveBtn} onPress={() => handleApprove(item.userId)}>
-                <Text style={styles.approveBtnText}>Approve</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <TouchableOpacity 
-              style={[styles.toggleBtn, { backgroundColor: item?.active ? '#FEE2E2' : '#DCFCE7' }]}
-              onPress={() => toggleStatus(item.userId, !!item.active)}
-            >
-              <Text style={[styles.toggleBtnText, { color: item?.active ? '#B91C1C' : '#15803D' }]}>
-                {item?.active ? 'Deactivate' : 'Activate'}
-              </Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
-    </View>
-  );
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#000" />
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
       
       <Modal animationType="fade" transparent={true} visible={modalVisible}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <View style={[styles.statusDotModal, { backgroundColor: modalMsg.isError ? '#EF4444' : '#10B981' }]} />
-            <Text style={styles.modalTitle}>{modalMsg.title}</Text>
+            <Text style={[styles.modalTitle, {color: modalMsg.isError ? '#DC2626' : PRIMARY_GREEN}]}>{modalMsg.title}</Text>
             <Text style={styles.modalBody}>{modalMsg.body}</Text>
-            <TouchableOpacity style={styles.modalBtnMain} onPress={handleModalClose}>
-              <Text style={styles.modalBtnTextMain}>CLOSE</Text>
+            <TouchableOpacity style={[styles.modalBtnMain, {backgroundColor: modalMsg.isError ? '#DC2626' : PRIMARY_GREEN}]} onPress={() => setModalVisible(false)}>
+              <Text style={styles.modalBtnTextMain}>CONTINUE</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -184,17 +173,15 @@ export default function UserManagementScreen({ route }: any) {
 
       <View style={styles.header}>
         <Text style={styles.title}>User Management</Text>
+        <Text style={styles.subtitle}>
+          {activeTab === 'pending' ? 'Review new account requests' : 'Manage all registered users'}
+        </Text>
+        
         {activeTab === 'all' && (
           <View style={styles.searchContainer}>
             <View style={styles.searchBarWrapper}>
-              <Text style={{paddingLeft: 12}}>🔍</Text>
-              <TextInput 
-                style={styles.searchBar} 
-                placeholder="Search user..." 
-                placeholderTextColor="#94A3B8"
-                value={searchQuery} 
-                onChangeText={setSearchQuery} 
-              />
+              <Text style={{marginLeft: 15}}>🔍</Text>
+              <TextInput style={styles.searchBar} placeholder="Search accounts..." value={searchQuery} onChangeText={setSearchQuery} />
             </View>
             <TouchableOpacity onPress={toggleSort} style={styles.sortBtn}>
               <Text style={styles.sortBtnText}>{sortOrder === 'asc' ? 'A-Z' : 'Z-A'}</Text>
@@ -212,150 +199,74 @@ export default function UserManagementScreen({ route }: any) {
         </TouchableOpacity>
       </View>
 
-      {loading && users.length === 0 ? (
-        <ActivityIndicator size="large" color="#000" style={{ marginTop: 50 }} />
-      ) : (
-        <FlatList
-          data={displayData}
-          keyExtractor={(item) => item.userId.toString()}
-          renderItem={renderUserItem}
-          contentContainerStyle={[
-            { padding: 20, paddingBottom: 40 },
-            displayData.length === 0 && { flex: 1, justifyContent: 'center' }
-          ]}
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Text style={{fontSize: 50, marginBottom: 15}}>👥</Text>
-              <Text style={styles.emptyTitle}>No Users Found</Text>
-              <Text style={styles.emptySubtitle}>
-                {activeTab === 'pending' 
-                  ? "There are no pending registration requests at this moment." 
-                  : "We couldn't find any user accounts matching your criteria."}
-              </Text>
-            </View>
-          }
-          refreshing={loading}
-          onRefresh={fetchUsers}
-          showsVerticalScrollIndicator={false}
-        />
-      )}
+      <FlatList
+        data={displayData}
+        keyExtractor={(item) => item.userId.toString()}
+        renderItem={({ item }) => (
+          <UserCard 
+            item={item} 
+            activeTab={activeTab} 
+            onReject={handleReject}
+            onApprove={handleApprove}
+            onToggleStatus={toggleStatus}
+          />
+        )}
+        contentContainerStyle={{ padding: 20 }}
+        refreshing={loading}
+        onRefresh={fetchUsers}
+        ListEmptyComponent={
+          <View style={{marginTop: 50, alignItems: 'center'}}>
+            <Text style={{color: '#94A3B8', fontWeight: '600'}}>No users found.</Text>
+          </View>
+        }
+      />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFFFFF' },
-  header: { 
-    padding: 25, 
-    backgroundColor: '#000', 
-    borderBottomLeftRadius: 35, 
-    borderBottomRightRadius: 35 
-  },
-  title: { fontSize: 26, fontWeight: '900', color: '#FFF', letterSpacing: -0.5 },
-  searchContainer: { flexDirection: 'row', gap: 10, marginTop: 20 },
-  searchBarWrapper: { 
-    flex: 1, 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    backgroundColor: 'rgba(255,255,255,0.15)', 
-    borderRadius: 15 
-  },
-  searchBar: { flex: 1, padding: 12, color: '#FFF', fontWeight: '600' },
-  sortBtn: { backgroundColor: '#FFF', paddingHorizontal: 15, borderRadius: 15, justifyContent: 'center' },
-  sortBtnText: { color: '#000', fontWeight: '900', fontSize: 12 },
-  
-  tabContainer: { 
-    flexDirection: 'row', 
-    marginTop: 10, 
-    paddingHorizontal: 20, 
-    borderBottomWidth: 1, 
-    borderBottomColor: '#F1F5F9' 
-  },
-  tab: { flex: 1, paddingVertical: 18, alignItems: 'center' },
-  activeTab: { borderBottomWidth: 3, borderBottomColor: '#000' },
-  tabText: { fontWeight: '700', color: '#94A3B8', fontSize: 13 },
-  activeTabText: { color: '#000' },
-
-  card: { 
-    backgroundColor: '#FFF', 
-    borderRadius: 24, 
-    padding: 20, 
-    marginBottom: 16, 
-    borderWidth: 1, 
-    borderColor: '#F1F5F9',
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 10
-  },
+  header: { paddingHorizontal: 25, paddingTop: 20 },
+  title: { fontSize: 28, fontWeight: '900', color: TEXT_DARK },
+  subtitle: { fontSize: 13, color: '#94A3B8', marginTop: 4, fontWeight: '600' },
+  searchContainer: { flexDirection: 'row', gap: 10, marginTop: 15 },
+  searchBarWrapper: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: LIGHT_GREY, borderRadius: 15, borderWidth: 1, borderColor: '#E2E8F0' },
+  searchBar: { flex: 1, padding: 12, color: TEXT_DARK, fontWeight: '600' },
+  sortBtn: { backgroundColor: PRIMARY_GREEN, paddingHorizontal: 15, borderRadius: 15, justifyContent: 'center' },
+  sortBtnText: { color: '#FFF', fontWeight: '900', fontSize: 12 },
+  tabContainer: { flexDirection: 'row', marginTop: 20, paddingHorizontal: 20 },
+  tab: { flex: 1, paddingVertical: 15, alignItems: 'center', borderBottomWidth: 3, borderBottomColor: '#F1F5F9' },
+  activeTab: { borderBottomColor: PRIMARY_GREEN },
+  tabText: { fontWeight: '700', color: '#94A3B8' },
+  activeTabText: { color: PRIMARY_GREEN },
+  card: { backgroundColor: '#FFF', borderRadius: 22, padding: 18, marginBottom: 15, borderWidth: 1, borderColor: '#F1F5F9', elevation: 2 },
   cardHeader: { flexDirection: 'row', alignItems: 'center' },
-  avatar: { 
-    width: 55, 
-    height: 55, 
-    borderRadius: 18, 
-    backgroundColor: '#F8FAFC', 
-    justifyContent: 'center', 
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#F1F5F9'
-  },
-  avatarText: { fontSize: 22, fontWeight: '900', color: '#000' },
-  infoSection: { marginLeft: 16, flex: 1 },
-  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  userName: { fontSize: 18, fontWeight: '800', color: '#0F172A' },
-  roleChip: { backgroundColor: '#F1F5F9', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 8 },
-  roleText: { fontSize: 10, fontWeight: '900', color: '#64748B', textTransform: 'uppercase' },
-  userEmail: { fontSize: 13, color: '#64748B', marginTop: 3, fontWeight: '500' },
-  userPhone: { fontSize: 12, color: '#94A3B8', marginTop: 2, fontWeight: '600' },
-  statusIndicator: { width: 10, height: 10, borderRadius: 5 },
+  avatar: { width: 55, height: 55, borderRadius: 18, backgroundColor: '#f1fdf0', justifyContent: 'center', alignItems: 'center' },
+  avatarText: { fontSize: 22, fontWeight: '900', color: PRIMARY_GREEN },
+  infoSection: { marginLeft: 15, flex: 1 },
+  userName: { fontSize: 17, fontWeight: '800', color: TEXT_DARK },
   
-  cardFooter: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    alignItems: 'center', 
-    marginTop: 18, 
-    paddingTop: 15, 
-    borderTopWidth: 1, 
-    borderTopColor: '#F8FAFC' 
-  },
-  pill: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 },
+  // ✅ Role Tag Styles
+  roleTag: { backgroundColor: '#F1F5F9', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
+  roleTagText: { fontSize: 10, color: '#64748B', fontWeight: '900', textTransform: 'uppercase' },
+
+  userEmail: { fontSize: 13, color: '#64748B' },
+  userPhone: { fontSize: 12, color: '#94A3B8' },
+  cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 15, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#F8FAFC' },
+  pill: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10 },
   pillText: { fontSize: 11, fontWeight: '800' },
-  
-  actions: { flexDirection: 'row' },
-  btnGroup: { flexDirection: 'row', gap: 10 },
-  approveBtn: { backgroundColor: '#000', paddingHorizontal: 18, paddingVertical: 10, borderRadius: 12 },
+  actions: { flexDirection: 'row', alignItems: 'center' },
+  btnGroup: { flexDirection: 'row', gap: 8 },
+  approveBtn: { backgroundColor: PRIMARY_GREEN, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12 },
   approveBtnText: { color: '#FFF', fontWeight: '900', fontSize: 12 },
-  rejectBtn: { backgroundColor: '#FFF', borderWidth: 1.5, borderColor: '#EF4444', paddingHorizontal: 18, paddingVertical: 10, borderRadius: 12 },
+  rejectBtn: { backgroundColor: '#FFF', borderWidth: 1, borderColor: '#EF4444', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12 },
   rejectBtnText: { color: '#EF4444', fontWeight: '900', fontSize: 12 },
-  toggleBtn: { paddingHorizontal: 18, paddingVertical: 10, borderRadius: 12 },
+  toggleBtn: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12, borderWidth: 1 },
   toggleBtnText: { fontSize: 12, fontWeight: '900' },
-
-  // Empty State Styles
-  emptyContainer: { 
-    alignItems: 'center', 
-    justifyContent: 'center', 
-    marginTop: 40
-  },
-  emptyTitle: { 
-    fontSize: 22, 
-    fontWeight: '900', 
-    color: '#0F172A', 
-    marginBottom: 8 
-  },
-  emptySubtitle: { 
-    fontSize: 14, 
-    color: '#94A3B8', 
-    textAlign: 'center', 
-    paddingHorizontal: 40,
-    fontWeight: '600',
-    lineHeight: 20
-  },
-
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', padding: 25 },
-  modalContent: { width: '100%', backgroundColor: '#FFF', borderRadius: 32, padding: 30, alignItems: 'center' },
-  statusDotModal: { width: 50, height: 6, borderRadius: 3, marginBottom: 20 },
-  modalTitle: { fontSize: 24, fontWeight: '900', color: '#000', marginBottom: 10, textAlign: 'center' },
-  modalBody: { fontSize: 15, color: '#64748B', textAlign: 'center', marginBottom: 30, fontWeight: '600', lineHeight: 22 },
-  modalBtnMain: { backgroundColor: '#000', width: '100%', height: 56, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  modalBtnTextMain: { color: '#FFF', fontWeight: '900', letterSpacing: 1, fontSize: 14 }
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.7)', justifyContent: 'center', alignItems: 'center', padding: 30 },
+  modalContent: { width: '100%', backgroundColor: '#FFF', borderRadius: 25, padding: 30, alignItems: 'center' },
+  modalTitle: { fontSize: 22, fontWeight: '900', marginBottom: 10 },
+  modalBody: { fontSize: 15, color: '#64748B', textAlign: 'center', marginBottom: 25 },
+  modalBtnMain: { width: '100%', height: 55, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
+  modalBtnTextMain: { color: '#FFF', fontWeight: '900' }
 });

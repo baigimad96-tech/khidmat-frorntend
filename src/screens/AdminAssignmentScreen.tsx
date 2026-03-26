@@ -6,6 +6,7 @@ import {
 import axios from 'axios';
 
 const BASE_URL = 'https://perchable-freewheeling-faye.ngrok-free.dev';
+const PRIMARY_GREEN = '#42b212'; // ✅ Green Theme
 
 export default function AdminAssignmentScreen({ route }: any) {
   const { user } = route.params;
@@ -92,14 +93,13 @@ export default function AdminAssignmentScreen({ route }: any) {
     } finally { setAssigning(false); }
   };
 
-  // --- SUB-SCREEN: ASSIGNMENT FORM ---
   if (selectedDonee) {
     return (
       <SafeAreaView style={styles.container}>
         <StatusBar barStyle="dark-content" backgroundColor="#FFF" />
         <View style={styles.detailHeader}>
             <TouchableOpacity onPress={() => setSelectedDonee(null)} style={styles.backCircle}>
-                <Text style={{fontSize: 20, fontWeight: '900'}}>←</Text>
+                <Text style={{fontSize: 20, fontWeight: '900', color: PRIMARY_GREEN}}>←</Text>
             </TouchableOpacity>
             <Text style={styles.detailHeaderTitle}>Assign Surveyor</Text>
         </View>
@@ -134,7 +134,7 @@ export default function AdminAssignmentScreen({ route }: any) {
                   ? `✅ ${selectedSurveyor.fullName}` 
                   : "Select available personnel..."}
               </Text>
-              <Text style={styles.arrow}>▼</Text>
+              <Text style={[styles.arrow, {color: PRIMARY_GREEN}]}>▼</Text>
             </TouchableOpacity>
 
             <Text style={styles.inputLabel}>VISIT DATE (YYYY-MM-DD)</Text>
@@ -160,7 +160,6 @@ export default function AdminAssignmentScreen({ route }: any) {
           <View style={{height: 40}} />
         </ScrollView>
 
-        {/* SURVEYOR SELECTION MODAL */}
         <Modal visible={showSurveyorModal} animationType="slide" transparent={true}>
           <View style={styles.modalOverlay}>
             <View style={styles.modalSheet}>
@@ -187,7 +186,7 @@ export default function AdminAssignmentScreen({ route }: any) {
                         <Text style={styles.listNameText}>{item.fullName}</Text>
                         <Text style={styles.listPhoneText}>ID: {item.surveyorId} • 📞 {item.phone}</Text>
                     </View>
-                    <Text style={{fontSize: 18}}>➕</Text>
+                    <Text style={{fontSize: 18, color: PRIMARY_GREEN}}>➕</Text>
                   </TouchableOpacity>
                 )}
                 ListEmptyComponent={<Text style={styles.emptySearchTxt}>No surveyors found.</Text>}
@@ -202,17 +201,17 @@ export default function AdminAssignmentScreen({ route }: any) {
     );
   }
 
-  // --- MAIN SCREEN: REQUEST LIST ---
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#000" />
+      <StatusBar barStyle="dark-content" backgroundColor="#FFF" />
       <View style={styles.mainHeader}>
           <Text style={styles.mainHeaderTitle}>Verification Requests</Text>
           <Text style={styles.mainHeaderSub}>Assign surveyors to new applicants</Text>
+          <View style={styles.headerUnderline} />
       </View>
 
       {loading && donees.length === 0 ? (
-          <View style={{flex: 1, justifyContent: 'center'}}><ActivityIndicator size="large" color="#000" /></View>
+          <View style={{flex: 1, justifyContent: 'center'}}><ActivityIndicator size="large" color={PRIMARY_GREEN} /></View>
       ) : (
         <FlatList 
             data={donees}
@@ -226,13 +225,15 @@ export default function AdminAssignmentScreen({ route }: any) {
                     <Text style={styles.cardNameTxt}>{item.fullName}</Text>
                     <Text style={styles.cardLocTxt}>{item.currentCity} • {item.phone}</Text>
                 </View>
-                <Text style={{fontSize: 20, color: '#CBD5E1'}}>›</Text>
+                <Text style={{fontSize: 20, color: PRIMARY_GREEN}}>›</Text>
             </TouchableOpacity>
             )}
             contentContainerStyle={{padding: 20}}
             ListEmptyComponent={
                 <View style={styles.emptyBox}>
-                    <Text style={{fontSize: 50, marginBottom: 10}}>✅</Text>
+                    <View style={styles.emptyIconCircle}>
+                      <Text style={{fontSize: 40}}>✅</Text>
+                    </View>
                     <Text style={styles.emptyBoxTitle}>All Caught Up!</Text>
                     <Text style={styles.emptyBoxSub}>No pending verification requests found.</Text>
                 </View>
@@ -246,34 +247,35 @@ export default function AdminAssignmentScreen({ route }: any) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFFFFF' },
   
-  // Header Styles
-  mainHeader: { backgroundColor: '#000', padding: 25, borderBottomLeftRadius: 35, borderBottomRightRadius: 35 },
-  mainHeaderTitle: { color: '#FFF', fontSize: 26, fontWeight: '900', letterSpacing: -0.5 },
+  // Header Styles (White Background, Green Accents)
+  mainHeader: { backgroundColor: '#FFF', padding: 25, paddingBottom: 15 },
+  mainHeaderTitle: { color: '#0F172A', fontSize: 28, fontWeight: '900', letterSpacing: -0.5 },
   mainHeaderSub: { color: '#94A3B8', fontSize: 13, marginTop: 5, fontWeight: '600' },
+  headerUnderline: { width: 40, height: 4, backgroundColor: PRIMARY_GREEN, marginTop: 12, borderRadius: 2 },
   
   detailHeader: { flexDirection: 'row', alignItems: 'center', padding: 20, backgroundColor: '#FFF' },
-  backCircle: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#F1F5F9', justifyContent: 'center', alignItems: 'center' },
-  detailHeaderTitle: { marginLeft: 15, fontSize: 18, fontWeight: '800', color: '#000' },
+  backCircle: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#f1fdf0', justifyContent: 'center', alignItems: 'center' },
+  detailHeaderTitle: { marginLeft: 15, fontSize: 18, fontWeight: '800', color: '#0F172A' },
 
   // List Screen Styles
   mainCard: { 
     backgroundColor: '#FFF', padding: 16, borderRadius: 24, marginBottom: 15, 
     flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#F1F5F9',
-    elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10 
+    elevation: 2, shadowColor: PRIMARY_GREEN, shadowOpacity: 0.05, shadowRadius: 10 
   },
-  cardAvatar: { width: 50, height: 50, borderRadius: 15, backgroundColor: '#F8FAFC', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#F1F5F9' },
-  cardAvatarTxt: { fontSize: 20, fontWeight: '900' },
+  cardAvatar: { width: 50, height: 50, borderRadius: 15, backgroundColor: '#f1fdf0', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#dcfce7' },
+  cardAvatarTxt: { fontSize: 20, fontWeight: '900', color: PRIMARY_GREEN },
   cardNameTxt: { fontSize: 17, fontWeight: '800', color: '#0F172A' },
   cardLocTxt: { fontSize: 13, color: '#64748B', marginTop: 2, fontWeight: '500' },
 
   // Detail Screen Styles
   detailContainer: { flex: 1, paddingHorizontal: 20 },
-  profileBox: { alignItems: 'center', padding: 25, backgroundColor: '#F8FAFC', borderRadius: 30, borderWidth: 1, borderColor: '#F1F5F9' },
-  avatarLarge: { width: 80, height: 80, borderRadius: 25, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center', marginBottom: 15 },
+  profileBox: { alignItems: 'center', padding: 25, backgroundColor: '#f1fdf0', borderRadius: 30, borderWidth: 1, borderColor: '#dcfce7' },
+  avatarLarge: { width: 80, height: 80, borderRadius: 25, backgroundColor: PRIMARY_GREEN, justifyContent: 'center', alignItems: 'center', marginBottom: 15 },
   avatarLargeText: { color: '#FFF', fontSize: 32, fontWeight: '900' },
   titleText: { fontSize: 22, fontWeight: '900', color: '#0F172A' },
   phoneSubText: { fontSize: 14, color: '#64748B', marginTop: 5, fontWeight: '700' },
-  divider: { width: '100%', height: 1, backgroundColor: '#E2E8F0', marginVertical: 20 },
+  divider: { width: '100%', height: 1, backgroundColor: '#dcfce7', marginVertical: 20 },
   infoGrid: { width: '100%', gap: 12 },
   infoRow: { flexDirection: 'row', justifyContent: 'space-between' },
   labelSmall: { fontWeight: '800', fontSize: 11, color: '#94A3B8' },
@@ -281,33 +283,34 @@ const styles = StyleSheet.create({
 
   // Form Styles
   formBox: { marginTop: 25 },
-  formSectionTitle: { fontSize: 18, fontWeight: '900', color: '#000', marginBottom: 5 },
+  formSectionTitle: { fontSize: 18, fontWeight: '900', color: '#0F172A', marginBottom: 5 },
   inputLabel: { fontSize: 11, fontWeight: '900', color: '#94A3B8', marginTop: 20, marginBottom: 8 },
-  dropdownInput: { flexDirection: 'row', justifyContent: 'space-between', padding: 16, borderRadius: 15, backgroundColor: '#F1F5F9', alignItems: 'center' },
-  modernInput: { padding: 16, borderRadius: 15, backgroundColor: '#F1F5F9', color: '#000', fontWeight: '700', fontSize: 14 },
-  arrow: { fontSize: 12, color: '#000' },
+  dropdownInput: { flexDirection: 'row', justifyContent: 'space-between', padding: 16, borderRadius: 15, backgroundColor: '#F8FAFC', alignItems: 'center', borderWidth: 1, borderColor: '#F1F5F9' },
+  modernInput: { padding: 16, borderRadius: 15, backgroundColor: '#F8FAFC', color: '#000', fontWeight: '700', fontSize: 14, borderWidth: 1, borderColor: '#F1F5F9' },
+  arrow: { fontSize: 12, fontWeight: '900' },
   priorityGroup: { flexDirection: 'row', gap: 10 },
-  pButton: { flex: 1, padding: 14, borderRadius: 15, borderWidth: 2, borderColor: '#F1F5F9', alignItems: 'center' },
-  pActive: { backgroundColor: '#000', borderColor: '#000' },
+  pButton: { flex: 1, padding: 14, borderRadius: 15, borderWidth: 2, borderColor: '#F1F5F9', alignItems: 'center', backgroundColor: '#FFF' },
+  pActive: { backgroundColor: PRIMARY_GREEN, borderColor: PRIMARY_GREEN },
   pButtonText: { fontSize: 11, fontWeight: '900', color: '#64748B' },
-  primaryBtn: { backgroundColor: '#000', padding: 18, borderRadius: 18, marginTop: 35, alignItems: 'center' },
+  primaryBtn: { backgroundColor: PRIMARY_GREEN, padding: 18, borderRadius: 18, marginTop: 35, alignItems: 'center', elevation: 3 },
   primaryBtnText: { color: '#FFF', fontWeight: '900', letterSpacing: 1 },
 
   // Modal Styles
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.5)', justifyContent: 'flex-end' },
   modalSheet: { backgroundColor: '#FFF', borderTopLeftRadius: 35, borderTopRightRadius: 35, padding: 25, maxHeight: '85%' },
   modalHandle: { width: 40, height: 5, backgroundColor: '#E2E8F0', alignSelf: 'center', borderRadius: 10, marginBottom: 20 },
-  modalHeaderTitle: { fontSize: 20, fontWeight: '900', marginBottom: 20, textAlign: 'center' },
-  modalSearchWrapper: { backgroundColor: '#F1F5F9', borderRadius: 15, paddingHorizontal: 15, marginBottom: 15 },
-  modalSearchInput: { padding: 14, fontWeight: '700' },
+  modalHeaderTitle: { fontSize: 20, fontWeight: '900', marginBottom: 20, textAlign: 'center', color: '#0F172A' },
+  modalSearchWrapper: { backgroundColor: '#F8FAFC', borderRadius: 15, paddingHorizontal: 15, marginBottom: 15, borderWidth: 1, borderColor: '#F1F5F9' },
+  modalSearchInput: { padding: 14, fontWeight: '700', color: '#000' },
   modalListItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 18, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
   listNameText: { fontSize: 16, fontWeight: '800', color: '#0F172A' },
   listPhoneText: { fontSize: 12, color: '#64748B', marginTop: 2, fontWeight: '600' },
-  modalCloseBtn: { marginTop: 20, padding: 18, alignItems: 'center', backgroundColor: '#F1F5F9', borderRadius: 15 },
+  modalCloseBtn: { marginTop: 20, padding: 18, alignItems: 'center', backgroundColor: '#F8FAFC', borderRadius: 15 },
   modalCloseBtnTxt: { color: '#EF4444', fontWeight: '900', fontSize: 13 },
 
   // Empty State
   emptyBox: { alignItems: 'center', marginTop: 100 },
+  emptyIconCircle: { width: 100, height: 100, borderRadius: 50, backgroundColor: '#f1fdf0', justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
   emptyBoxTitle: { fontSize: 22, fontWeight: '900', color: '#0F172A', marginBottom: 8 },
   emptyBoxSub: { fontSize: 14, color: '#94A3B8', textAlign: 'center', paddingHorizontal: 50, fontWeight: '600' },
   emptySearchTxt: { textAlign: 'center', marginVertical: 30, color: '#94A3B8', fontWeight: '700' }

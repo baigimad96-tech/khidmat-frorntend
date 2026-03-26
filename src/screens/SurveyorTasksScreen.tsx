@@ -7,6 +7,11 @@ import axios from 'axios';
 
 const BASE_URL = 'https://perchable-freewheeling-faye.ngrok-free.dev';
 
+// Primary Theme Colors (Same as Profile Screen)
+const PRIMARY_GREEN = '#42b212';
+const LIGHT_GREEN_BG = '#f1fdf0';
+const BORDER_GREEN = '#dcfce7';
+
 export default function SurveyorTasksScreen({ route, navigation }: any) {
   const { user } = route.params; // Login data
   const [tasks, setTasks] = useState([]);
@@ -65,7 +70,6 @@ export default function SurveyorTasksScreen({ route, navigation }: any) {
   };
 
   const renderItem = ({ item }: any) => {
-    // Priority wise color logic (Same as Admin Assignment logic)
     const isUrgent = item.priority === 'URGENT' || item.priority === 'HIGH';
     
     return (
@@ -102,7 +106,8 @@ export default function SurveyorTasksScreen({ route, navigation }: any) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#000" />
+      {/* StatusBar adjusted for white/green look */}
+      <StatusBar barStyle="dark-content" backgroundColor={PRIMARY_GREEN} />
       
       <View style={styles.headerContainer}>
         <Text style={styles.header}>My Tasks</Text>
@@ -111,7 +116,7 @@ export default function SurveyorTasksScreen({ route, navigation }: any) {
 
       {loading && tasks.length === 0 ? (
         <View style={styles.center}>
-          <ActivityIndicator size="large" color="#000" />
+          <ActivityIndicator size="large" color={PRIMARY_GREEN} />
         </View>
       ) : (
         <FlatList
@@ -142,17 +147,22 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFFFFF' },
   headerContainer: { 
     padding: 25, 
-    backgroundColor: '#000', 
+    backgroundColor: PRIMARY_GREEN, // Changed from Black to Green
     borderBottomLeftRadius: 35, 
     borderBottomRightRadius: 35,
-    marginBottom: 10
+    marginBottom: 10,
+    elevation: 5,
+    shadowColor: PRIMARY_GREEN,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10
   },
   header: { fontSize: 26, fontWeight: '900', color: '#FFF', letterSpacing: -0.5 },
-  subHeader: { fontSize: 13, color: '#94A3B8', marginTop: 5, fontWeight: '600' },
+  subHeader: { fontSize: 13, color: '#dcfce7', marginTop: 5, fontWeight: '600' }, // Lighter green text
   
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   emptyCenter: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 40 },
-  emptyTitle: { fontSize: 20, fontWeight: '900', color: '#0F172A', marginBottom: 8 },
+  emptyTitle: { fontSize: 20, fontWeight: '900', color: PRIMARY_GREEN, marginBottom: 8 },
   emptyText: { color: '#94A3B8', fontSize: 14, textAlign: 'center', fontWeight: '600', lineHeight: 20 },
 
   card: { 
@@ -161,7 +171,7 @@ const styles = StyleSheet.create({
     padding: 16, 
     marginBottom: 16, 
     borderWidth: 1, 
-    borderColor: '#F1F5F9',
+    borderColor: BORDER_GREEN, // Greenish border
     elevation: 3,
     shadowColor: '#000',
     shadowOpacity: 0.05,
@@ -172,28 +182,30 @@ const styles = StyleSheet.create({
     width: 50, 
     height: 50, 
     borderRadius: 15, 
-    backgroundColor: '#F8FAFC', 
+    backgroundColor: LIGHT_GREEN_BG, // Soft green avatar bg
     justifyContent: 'center', 
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#F1F5F9'
+    borderColor: BORDER_GREEN
   },
-  avatarTxt: { fontSize: 20, fontWeight: '900', color: '#000' },
+  avatarTxt: { fontSize: 20, fontWeight: '900', color: PRIMARY_GREEN }, // Green letter
   
   name: { fontSize: 17, fontWeight: '800', color: '#0F172A' },
   city: { color: '#64748B', marginTop: 3, fontSize: 13, fontWeight: '500' },
   dateRow: { marginTop: 6 },
-  date: { color: '#94A3B8', fontSize: 11, fontWeight: '700' },
+  date: { color: PRIMARY_GREEN, fontSize: 11, fontWeight: '700' }, // Green date for visibility
   
   statusBadge: { 
-    backgroundColor: '#F1F5F9', 
+    backgroundColor: LIGHT_GREEN_BG, 
     paddingVertical: 6, 
     paddingHorizontal: 10, 
     borderRadius: 10,
     alignSelf: 'flex-start'
   },
-  badgeText: { color: '#64748B', fontWeight: '900', fontSize: 10, textTransform: 'uppercase' },
+  badgeText: { color: PRIMARY_GREEN, fontWeight: '900', fontSize: 10, textTransform: 'uppercase' },
   
-  urgentBadge: { backgroundColor: '#FEF2F2' },
+  urgentBadge: { backgroundColor: '#FEF2F2' }, // Keeping red for high priority alert
   urgentBadgeText: { color: '#EF4444' }
 });
+
+

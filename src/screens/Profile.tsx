@@ -7,8 +7,8 @@ import axios from 'axios';
 import { launchImageLibrary } from 'react-native-image-picker';
 
 const { width } = Dimensions.get('window');
-const BASE_URL = "https://taylor-unirritant-latina.ngrok-free.dev"; 
-const PRIMARY_GREEN = '#42b212'; // Aapka color
+const BASE_URL = "https://perchable-freewheeling-faye.ngrok-free.dev"; 
+const PRIMARY_GREEN = '#42b212'; 
 
 export default function ProfileScreen({ route, navigation }: any) {
   const { user } = route.params || {};
@@ -167,12 +167,22 @@ export default function ProfileScreen({ route, navigation }: any) {
         </SafeAreaView>
       </Modal>
 
-      {/* Header */}
+      {/* Header with Logo */}
       <View style={styles.headerWhite}>
-          <TouchableOpacity onPress={() => setSidebarVisible(true)}><Text style={{color: PRIMARY_GREEN, fontSize: 32, fontWeight:'bold'}}>≡</Text></TouchableOpacity>
-          <Text style={styles.logoText}>Khidmat</Text>
+          <TouchableOpacity onPress={() => setSidebarVisible(true)}></TouchableOpacity>
+          
+          <View style={styles.logoContainer}>
+             <Image 
+               source={require('../logo/KHIDMAT APP.png')} 
+               style={styles.logoImage}
+               resizeMode="contain"
+             />
+          </View>
+
           <View style={{width: 30}} />
       </View>
+
+      
 
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.mainContent}>
@@ -202,7 +212,7 @@ export default function ProfileScreen({ route, navigation }: any) {
               <Text style={styles.welcomeSub}>Manage your account settings and profile details here.</Text>
             </View>
 
-            {/* --- ACTION CARDS (Green Theme) --- */}
+            {/* --- ACTION CARDS --- */}
             {formData.role === 'SURVEYOR' && (
               <TouchableOpacity style={styles.greenActionCard} onPress={() => navigation.navigate('Registration')}>
                 <View style={{flex: 1}}>
@@ -225,7 +235,7 @@ export default function ProfileScreen({ route, navigation }: any) {
         </View>
       </ScrollView>
 
-      {/* --- PHOTO OPTIONS MODAL --- */}
+      {/* ... (Modals remain same) ... */}
       <Modal visible={isOptionsModalVisible} transparent animationType="slide">
         <TouchableOpacity style={styles.bottomOverlay} activeOpacity={1} onPress={() => setOptionsModalVisible(false)}>
           <View style={styles.optionsSheet}>
@@ -245,7 +255,6 @@ export default function ProfileScreen({ route, navigation }: any) {
         </TouchableOpacity>
       </Modal>
 
-      {/* --- CONFIRM MODAL --- */}
       <Modal visible={isConfirmModalVisible} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -264,7 +273,6 @@ export default function ProfileScreen({ route, navigation }: any) {
         </View>
       </Modal>
 
-      {/* --- STATUS MODAL --- */}
       <Modal visible={statusModalVisible} transparent animationType="fade">
         <View style={styles.modalOverlay}><View style={styles.modalContent}>
             <Text style={[styles.modalTitle, {color: statusMsg.isError ? '#EF4444' : PRIMARY_GREEN}]}>{statusMsg.title}</Text>
@@ -290,9 +298,42 @@ const styles = StyleSheet.create({
   card: { backgroundColor: '#f8fafc', borderRadius: 24, padding: 20, borderWidth: 1.5, borderColor: '#F1F5F9' },
   inputLabel: { fontSize: 11, fontWeight: '800', color: '#64748B', marginBottom: 8, marginTop: 10, textTransform: 'uppercase' },
   modernInput: { backgroundColor: '#FFF', borderRadius: 14, padding: 15, borderWidth: 1.5, borderColor: '#E2E8F0', color: '#0F172A', fontSize: 15, fontWeight: '600' },
-  headerWhite: { height: 70, backgroundColor: '#FFF', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 25 },
-  logoText: { color: '#0F172A', fontSize: 24, fontWeight: '900', letterSpacing: -1 },
-  mainContent: { padding: 25 },
+  
+  // Header with Logo Styling
+  headerWhite: { 
+    height: 80, 
+    backgroundColor: '#FFF', 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'space-between', 
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F8FAFC'
+  },
+  logoContainer: {
+    width: 90,    // Size 60 se badha kar 90 kar diya
+    height: 90,   // Size 60 se badha kar 90 kar diya
+    borderRadius: 70, // Circle maintain karne ke liye half of width
+    backgroundColor: '#42b212',
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    borderWidth: 1,
+    borderColor: '#ffffff',
+    marginTop: 55, // Aapke hisab se margin adjust kiya
+  },
+  logoImage: { 
+    width: '90%', // Thodi padding rakhi hai taaki image edges se na chipke
+    height: '90%' ,
+    borderRadius:60
+  },
+
+  mainContent: { padding: 25 ,marginTop:40},
   miniProfileCard: { backgroundColor: '#FFF', borderRadius: 28, padding: 20, flexDirection: 'row', alignItems: 'center', elevation: 10, shadowColor: PRIMARY_GREEN, shadowOpacity: 0.1, shadowRadius: 20, borderWidth: 1, borderColor: '#F1F5F9' },
   miniAvatar: { width: 75, height: 75, borderRadius: 25, backgroundColor: '#f0fdf4', justifyContent: 'center', alignItems: 'center', overflow: 'hidden', borderWidth: 2, borderColor: PRIMARY_GREEN },
   fullImg: { width: '100%', height: '100%' },
@@ -308,7 +349,6 @@ const styles = StyleSheet.create({
   welcomeTitle: { fontSize: 28, fontWeight: '900', color: '#0F172A', marginBottom: 6 },
   welcomeSub: { fontSize: 15, color: '#64748B', lineHeight: 22, fontWeight: '500' },
   
-  // Naya Green Action Card
   greenActionCard: { backgroundColor: PRIMARY_GREEN, flexDirection: 'row', alignItems: 'center', padding: 24, borderRadius: 28, marginTop: 25, elevation: 8, shadowColor: PRIMARY_GREEN, shadowOpacity: 0.4, shadowRadius: 12 },
   actionTitleWhite: { fontSize: 20, fontWeight: '900', color: '#FFF' },
   actionSubWhite: { fontSize: 13, color: '#dcfce7', marginTop: 4, fontWeight: '500' },
